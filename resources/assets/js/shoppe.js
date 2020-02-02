@@ -11,7 +11,10 @@ thisVariation = {};
 
 let $shoppeAddCartAlert = document.querySelector('#shoppe-product-alert'),
 $shippingAddressFields = document.querySelectorAll('.shipping-address-field'),
-$shippingTaxesLoader = document.querySelectorAll('.shipping-taxes-loader');
+$shippingTaxesLoader = document.querySelector('.shipping-taxes-loader'),
+$shippingRatesList = document.querySelector('.shipping-rates-list'),
+$submitOrderBtn = document.querySelector('.submit-order-btn'),
+$sameAsShipping = document.querySelector('#same-as-shipping');
 
 let alertTypes = [
     'alert-primary',
@@ -59,7 +62,7 @@ let getShipping = async () => {
 
     return HTTP.post('/api/shipping', formData)
     .then( response => {
-        return response.data.shipping;
+        return response.data.rates;
     })
     .catch(e => {
         console.log('shipping error', e);
@@ -70,6 +73,12 @@ let getTaxes = async (shipping) => {
     let taxes = 0.00;
     let formData = new FormData();
     formData.append('shipping', shipping );
+    formData.append('address', document.querySelector('#shipping-address').value );
+    formData.append('address2', document.querySelector('#shipping-address2').value);
+    formData.append('city', document.querySelector('#shipping-city').value);
+    formData.append('state', document.querySelector('#shipping-state').value);
+    formData.append('zip', document.querySelector('#shipping-zip-code').value);
+    formData.append('country', document.querySelector('#shipping-country').value);
 
     return HTTP.post('/api/taxes', formData)
     .then( response => {
@@ -80,10 +89,14 @@ let getTaxes = async (shipping) => {
     });
 };
 
+function calcOrderTotal(){
+
+}
+
 function validateShippingFields(){
     let hasShippingAddress = true;
-    if($shippingTaxesLoader.lenght){
-        $shippingTaxesLoader.style.display = 'block';
+    if($shippingTaxesLoader){
+        $shippingTaxesLoader.classList.add('loading');
     }
     console.log('validate shipping');
     $shippingAddressFields.forEach( function(el){
@@ -94,17 +107,41 @@ function validateShippingFields(){
 
     if( hasShippingAddress ){
 
-        getShipping().then( (shipping) => {
-            getTaxes(shipping).then( (taxes) => {
-                if($shippingTaxesLoader.length){
-                    $shippingTaxesLoader.style.display = 'none';
+        getShipping().then( (rates) => {
+
+            let rate = rates[0].amount;
+
+            $shippingRatesList.innerHTML = '';
+            let rateItems = '';
+            rates.forEach( (v, i) => {
+                let checked = i === 0? 'checked="checked"' : '';
+                rateItems += '<li class="rate-item">';
+                    rateItems += '<label>';
+                    rateItems += '<input type="radio" name="shipping_rate" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.amount+'">';
+                    rateItems += ' <span class="rate-service">'+v.carrier +' '+v.service+'</span> $<span class="rate-amount">'+v.amount+'</span>';
+                    rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div>';
+                    rateItems += '</label>';
+                rateItems += '</li>';
+            });
+            $shippingRatesList.innerHTML = rateItems;
+
+            document.querySelector('.shipping').innerHTML = rate;
+
+            getTaxes(rate).then( (taxes) => {
+
+                document.querySelector('.taxes').innerHTML = taxes;
+
+                calcOrderTotal();
+
+                if($shippingTaxesLoader){
+                    $shippingTaxesLoader.classList.remove('loading');
                 }
             })
         });
 
     } else {
-        if($shippingTaxesLoader.length){
-            $shippingTaxesLoader.style.display = 'none';
+        if($shippingTaxesLoader){
+            $shippingTaxesLoader.classList.remove('loading');
         }
     }
 }
@@ -162,7 +199,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
     if( $addCartBtn ){
         $addCartBtn.forEach(function(v){
             v.addEventListener('click', function(e){
-                $hasAttributes = v.getAttribute('data-has-attributes');
+                let $hasAttributes = v.getAttribute('data-has-attributes');
                 if( $hasAttributes ){
                     $productAttributeList.forEach(function(v){
                         if( v.value === '' ){
@@ -184,13 +221,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
     *
     *
     */
-    $productAttributeList.forEach(function(v){
+    $productAttributeList.forEach( (v) => {
         thisVariation = {};
-        v.addEventListener('change', function(e){
+        v.addEventListener('change', (e) => {
             //console.log('CHANGE ', e);
             let chooseAllAttributes = true;
             let attrSet = [];
-            $productAttributeList.forEach(function(v){
+            $productAttributeList.forEach( (v) => {
                 if( v.value === '' ){
                     chooseAllAttributes = false;
                 }
@@ -198,7 +235,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             });
 
             if ( chooseAllAttributes ){
-                thisVariation = variations.filter( function(obj){
+                thisVariation = variations.filter( (obj) => {
                     if( checkArrays( attrSet, obj.attribute_values ) ){
                         return obj;
                     }
@@ -212,7 +249,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         $productStock.innerHTML = thisVariation.stock;
                     }
                     if( thisVariation.mfg_part_number && $productPartNumber ){
-                        $productPartNumber.innerHTML = thisVariation.mfg_part_nuber;
+                        $productPartNumber.innerHTML = thisVariation.mfg_part_number;
                     }
                     if( thisVariation.image ){
                         let $variationImage = document.querySelector('#variation-image-'+thisVariation.id);
@@ -232,9 +269,57 @@ window.addEventListener('DOMContentLoaded', (e) => {
     */
     if( $shippingAddressFields.length > 0 ){
         validateShippingFields();
-        $shippingAddressFields.forEach( function(el){
+        $shippingAddressFields.forEach( (el) => {
             el.addEventListener('blur', validateShippingFields);
         });
     }
+
+    if( $sameAsShipping ){
+        $sameAsShipping.addEventListener('change', (el) => {
+            console.log(el);
+            if( el.target.checked ){
+                document.querySelector('#billing-address').value = document.querySelector('#shipping-address').value;
+                document.querySelector('#billing-address2').value = document.querySelector('#shipping-address2').value;
+                document.querySelector('#billing-city').value = document.querySelector('#shipping-city').value;
+                document.querySelector('#billing-state').value = document.querySelector('#shipping-state').value;
+                document.querySelector('#billing-zip-code').value = document.querySelector('#shipping-zip-code').value;
+                document.querySelector('#billing-country').value = document.querySelector('#shipping-country').value;
+            }
+        });
+    }
+
+    if( $submitOrderBtn ){
+        $submitOrderBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            let messages = [];
+            let html = '';
+            let $checkOutMessages = document.querySelector('.checkout-messages');
+            $checkOutMessages.style.display = 'none';
+            $checkOutMessages.innerHTML = '';
+            let $requireds = document.querySelectorAll('[data-required]');
+            if( $requireds.length ){
+                $requireds.forEach( (el) => {
+                    if( el.value === '' ){
+                        let inputMessage = el.getAttribute('data-required-message');
+                        messages.push(inputMessage);
+                    }
+                });
+            }
+
+            if( messages.length ){
+                messages.forEach( (mess) => {
+                    html += '<li>'+mess+'</li>';
+                });
+                $checkOutMessages.innerHTML = html;
+                $checkOutMessages.style.display = 'block';
+            }
+
+            if( !messages.length ){
+
+            }
+
+        });
+    }
+
 
 });

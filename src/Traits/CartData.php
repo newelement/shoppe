@@ -23,9 +23,10 @@ trait CartData
             $title = $product->title;
             $variation = false;
 
-            if( $item->variation_set ){
+            $varSet = json_decode($item->variation_set);
+            if( count($varSet) > 0 ){
                 $variation = ProductVariation::find($item->variation_id);
-                $shortDesc = $variation->desc;
+                $shortDesc = $variation? $variation->desc : '';
             } else {
                 $shortDesc = $product->content_short;
             }
@@ -40,7 +41,7 @@ trait CartData
 
             $items[$i]->price = (float) $price;
             $items[$i]->line_total = (float) $price * (int) $item->qty;
-            $items[$i]->prodcut = $product;
+            $items[$i]->product = $product;
             $items[$i]->variation = $variation;
             $items[$i]->variationFormatted = false;
             if( $items[$i]->variation_set ){
@@ -53,7 +54,7 @@ trait CartData
                 }
                 $items[$i]->variationFormatted = implode(', ', $formatted);
             }
-            $items[$i]->image =  $variation && $variation->image ? $variation->image : $product->featuredImage;
+            $items[$i]->image =  $variation && $variation->image ? $variation->image : $product->featuredImage->file_path;
             $sub_total += (float) $items[$i]->line_total;
 
             $i++;
@@ -86,6 +87,7 @@ trait CartData
         }
 
         $cartUser = Auth::check()? Auth::user()->id : $temp_cart_user;
+
         return $cartUser;
     }
 

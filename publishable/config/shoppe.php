@@ -26,6 +26,8 @@ return [
     'avalara_user' => env('APP_ENV') === 'production'? env('AVALARA_USER') : env('AVALARA_USER_DEV'),
     'avalara_pass' => env('APP_ENV') === 'production'? env('AVALARA_PASS') : env('AVALARA_PASS_DEV'),
 
+    'taxjar_token_live' => env('TAXJAR_TOKEN_LIVE'),
+
     'AUTHORIZE_NET_USER' => env('APP_ENV') === 'production'? env('AUTHORIZE_NET_USER') : env('AUTHORIZE_NET_USER_DEV'),
     'AUTHORIZE_NET_PASS' => env('APP_ENV') === 'production'? '' : '',
 
@@ -36,7 +38,7 @@ return [
     'SQUARE_PASS' => '',
 
     'shipping_connector' => 'Newelement\\Shoppe\\Http\\Controllers\\ShippingController@getShippingCosts',
-    'taxes_connector' => 'Newelement\\Shoppe\\Http\\Controllers',
+    'taxes_connector' => 'Newelement\\Shoppe\\Http\\Controllers\\TaxesController@getTaxes',
     'payment_connector' => 'Newelement\\Shoppe\\Http\\Controllers',
 
 ];

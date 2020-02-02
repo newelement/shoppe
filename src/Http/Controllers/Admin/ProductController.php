@@ -168,8 +168,7 @@ class ProductController extends Controller
                 $variation = new ProductVariation();
                 $variation->product_id = $product->id;
                 $variation->attribute_set = json_encode( $attrSetArr );
-                dump($attrSetArr);
-                $variation->attribute_values = '';
+                $variation->attribute_values = '{}';
 
                 // The variation row
                 /*

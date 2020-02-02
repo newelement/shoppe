@@ -42,11 +42,13 @@ $socialImages = getImageSizes($data->social_image);
                         @php
                         $imageSizes = getImageSizes($variation->image);
                         @endphp
+                        @if( $imageSizes )
                         <li id="variation-image-{{ $variation->id }}">
                             <a class="product-image-thumb" href="{{$imageSizes['large']}}" data-medium="{{ $imageSizes['medium'] }}">
                                 <img src="{{ $variation->image }}" alt="{{ $data->title }}">
                             </a>
                         </li>
+                        @endif
                         @endforeach
                     </ul>
                 </div>

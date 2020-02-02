@@ -37,6 +37,7 @@ class CartController extends Controller
         $variation_id = (int) $request->variation_id;
         $variationSets = [];
         $attributeSets = [];
+        $attributeIds = [];
         $cartUser = $this->getCartUser();
         $exists = false;
 
@@ -44,7 +45,7 @@ class CartController extends Controller
             $attributeIds = array_keys($attributes);
         }
 
-        foreach( $attributes as $key => $value ){
+        foreach( (array) $attributes as $key => $value ){
             if( isset($variations[$key]) && !$variations[$key] ){
 
                 if( $request->ajax() ){
@@ -57,13 +58,19 @@ class CartController extends Controller
         }
 
         // Does this item already exist in the cart?
-        $product = Cart::where([ 'user_id' => $cartUser, 'product_id' => $productId ])
-                    ->orWhere(['temp_user_id' => $cartUser, 'product_id' => $productId ])
-                    ->first();
+        $sql = "SELECT * FROM carts WHERE (user_id = ? and product_id = ?) OR ( temp_user_id = ? and product_id = ? ) ";
+        $params = [
+            $cartUser,
+            $productId,
+            $cartUser,
+            $productId
+        ];
+
+        $product = collect(\DB::select($sql, $params))->first();
 
         if( $product ){
             $currVariationSet = serialize( json_decode($product->variation_set, true) );
-            $same =  $currVariationSet === serialize( $variationSets) ;
+            $same = $currVariationSet === serialize( $variationSets) ;
             if( $same ){
                 $exists = $product;
             }

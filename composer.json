@@ -15,7 +15,10 @@
         }
     ],
     "require": {
-        "newelement/neutrino": "1.*"
+        "newelement/neutrino": "1.*",
+        "shippo/shippo-php": "1.*",
+        "avalara/avataxclient": "*",
+        "taxjar/taxjar-php": "^1.8"
     },
     "autoload": {
         "psr-4": {
