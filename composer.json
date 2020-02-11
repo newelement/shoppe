@@ -18,7 +18,8 @@
         "newelement/neutrino": "1.*",
         "shippo/shippo-php": "1.*",
         "avalara/avataxclient": "*",
-        "taxjar/taxjar-php": "^1.8"
+        "taxjar/taxjar-php": "^1.8",
+        "stripe/stripe-php": "^7.23"
     },
     "autoload": {
         "psr-4": {

@@ -29,6 +29,22 @@ class ShoppeServiceProvider extends ServiceProvider
             return auth();
         });
 
+        // Get connectors
+        $this->app->bind('Shipping', function ($app) {
+            $class = config('shoppe.shipping_connector','\\Newelement\\Shoppe\\Connectors\\Shipping');
+            return new $class();
+        });
+
+        $this->app->bind('Taxes', function ($app) {
+            $class = config('shoppe.taxes_connector','\\Newelement\\Shoppe\\Connectors\\Taxes');
+            return new $class();
+        });
+
+        $this->app->bind('Payment', function ($app) {
+            $class = config('shoppe.payment_connector','\\Newelement\\Shoppe\\Connectors\\Payment');
+            return new $class();
+        });
+
 		$this->loadHelpers();
 		$this->registerConfigs();
 

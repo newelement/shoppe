@@ -33,7 +33,7 @@ Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
 
     Route::get('/checkout', ['uses' => $namespacePrefix.'CheckoutController@index', 'as' => 'checkout']);
     Route::post('/checkout', ['uses' => $namespacePrefix.'CheckoutController@processCheckout', 'as' => 'checkout']);
-    Route::get('/checkout/'.config('shoppe.slugs.checkout_success').'/{orderHash}', ['uses' => $namespacePrefix.'CheckoutController@checkoutSuccess', 'as' => 'checkout']);
+    Route::get('/'.config('shoppe.slugs.order_complete', 'order-complete').'/{ref_id}', ['uses' => $namespacePrefix.'CheckoutController@checkoutSuccess', 'as' => 'order-complete']);
 });
 
 Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function () use ( $namespacePrefix ) {

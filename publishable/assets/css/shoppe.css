@@ -65,10 +65,60 @@
   width: 70px;
 }
 
-.shipping-taxes-loader {
-  display: block;
-  padding: 12px;
+.checkout-steps-wrap {
   position: relative;
+}
+
+.checkout-steps-wrap.loading:before {
+  display: block;
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.5);
+  z-index: 1;
+}
+
+.checkout-steps-wrap.loading:after {
+  display: inline-block;
+  width: 30px;
+  height: auto;
+  color: #fff;
+  content: url('data:image/svg+xml; utf8, <svg focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M460.115 373.846l-6.941-4.008c-5.546-3.202-7.564-10.177-4.661-15.886 32.971-64.838 31.167-142.731-5.415-205.954-36.504-63.356-103.118-103.876-175.8-107.701C260.952 39.963 256 34.676 256 28.321v-8.012c0-6.904 5.808-12.337 12.703-11.982 83.552 4.306 160.157 50.861 202.106 123.67 42.069 72.703 44.083 162.322 6.034 236.838-3.14 6.149-10.75 8.462-16.728 5.011z"></path></svg>');
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%);
+  -webkit-animation: spinning 1.5s linear infinite;
+          animation: spinning 1.5s linear infinite;
+  z-index: 2;
+}
+
+.shipping-taxes-loader {
+  display: -webkit-box;
+  display: flex;
+  position: relative;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+          flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.shipping-taxes-loader dt {
+  width: 50%;
+  color: #777;
+  font-size: 14px;
+}
+
+.shipping-taxes-loader dd {
+  width: 50%;
+  color: #777;
+  padding-left: 12px;
+  font-size: 14px;
+  text-align: right;
 }
 
 .shipping-taxes-loader.loading:before {
@@ -99,6 +149,32 @@
   z-index: 2;
 }
 
+.checkout-total {
+  display: -webkit-box;
+  display: flex;
+  flex-wrap: wrap;
+  -webkit-box-orient: horizontal;
+  -webkit-box-direction: normal;
+          flex-direction: row;
+  padding-top: 24px;
+  border-top: 1px solid #ccc;
+}
+
+.checkout-total dt {
+  width: 50%;
+  color: #777;
+  font-size: 18px;
+}
+
+.checkout-total dd {
+  width: 50%;
+  color: #777;
+  padding-left: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .fa-spinner-third {
   fill: #ffffff;
 }
@@ -115,15 +191,13 @@
   -webkit-box-orient: horizontal;
   -webkit-box-direction: normal;
           flex-direction: row;
-  -webkit-box-flex: 1;
-          flex-grow: 1;
   -webkit-box-align: center;
           align-items: center;
   padding: 12px 0;
   color: #999;
   font-size: 1.25rem;
-  -webkit-transition: color .35s ease;
-  transition: color .35s ease;
+  -webkit-transition: color .25s ease;
+  transition: color .25s ease;
 }
 
 .checkout-step:first-child {
@@ -140,14 +214,12 @@
   text-align: center;
   line-height: 29px;
   border: 1px solid #999;
-  -webkit-transition: border-color .35s ease, color .35s ease;
-  transition: border-color .35s ease, color .35s ease;
+  -webkit-transition: border-color .35s ease, color .25s ease;
+  transition: border-color .35s ease, color .25s ease;
 }
 
 .checkout-step .step-div {
   display: block;
-  -webkit-box-flex: 1;
-          flex-grow: 1;
   width: 50px;
   height: 3px;
   background-color: #eee;
@@ -164,8 +236,16 @@
   border-color: #007bff;
 }
 
-.checkout-step.current .step-div {
-  background-color: #007bff;
+.checkout-step.done {
+  color: #28a745;
+}
+
+.checkout-step.done .checkout-step-number {
+  border-color: #28a745;
+}
+
+.checkout-step.done .step-div {
+  background-color: #28a745;
 }
 
 .checkout-steps {
@@ -180,10 +260,43 @@
           flex-direction: row;
   -webkit-box-align: center;
           align-items: center;
+  -webkit-box-pack: center;
+          justify-content: center;
 }
 
 .checkout-steps-wrap {
   margin-bottom: 48px;
+}
+
+.checkout-form-section {
+  display: none;
+}
+
+.checkout-form-section.current {
+  display: block;
+}
+
+.visible-hide {
+  visibility: hidden;
+  display: none;
+}
+
+.visible-show {
+  visibility: visible;
+}
+
+.checkout-set-actions {
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+          align-items: center;
+  padding: 24px 0;
+}
+
+.checkout-set-actions .btn:last-of-type {
+  margin-left: auto;
 }
 
 .shipping-rates-list {
@@ -191,6 +304,15 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.StripeElement {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: #fff;
 }
 
 @-webkit-keyframes spinning {

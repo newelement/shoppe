@@ -18,6 +18,7 @@ class ShoppePageTableSeeder extends Seeder
             'title' => 'Cart',
             'slug' => 'cart',
 			'content' => 'DO NOT DELETE',
+            'system_page' => 1,
             'created_by' => 1,
             'updated_by' => 1
         ]);
@@ -27,6 +28,7 @@ class ShoppePageTableSeeder extends Seeder
             'slug' => 'checkout',
             'content' => 'DO NOT DELETE',
             'created_by' => 1,
+            'system_page' => 1,
             'updated_by' => 1
         ]);
 
@@ -35,6 +37,7 @@ class ShoppePageTableSeeder extends Seeder
             'slug' => 'checkout',
             'content' => 'DO NOT DELETE',
             'created_by' => 1,
+            'system_page' => 1,
             'updated_by' => 1
         ]);
 
@@ -43,6 +46,7 @@ class ShoppePageTableSeeder extends Seeder
             'slug' => 'thank-you',
             'content' => 'DO NOT DELETE',
             'created_by' => 1,
+            'system_page' => 1,
             'updated_by' => 1
         ]);
 
@@ -51,6 +55,7 @@ class ShoppePageTableSeeder extends Seeder
             'slug' => 'customer-account',
             'content' => 'DO NOT DELETE',
             'created_by' => 1,
+            'system_page' => 1,
             'updated_by' => 1
         ]);
 

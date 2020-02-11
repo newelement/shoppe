@@ -14,7 +14,7 @@ return [
     'slugs' => [
         'store_landing' => 'products',
         'product_single' => 'products',
-        'checkout_success' => 'thank-you',
+        'order_complete' => 'order-complete',
     ],
 
     'pagination_limits' => [
@@ -28,17 +28,17 @@ return [
 
     'taxjar_token_live' => env('TAXJAR_TOKEN_LIVE'),
 
-    'AUTHORIZE_NET_USER' => env('APP_ENV') === 'production'? env('AUTHORIZE_NET_USER') : env('AUTHORIZE_NET_USER_DEV'),
-    'AUTHORIZE_NET_PASS' => env('APP_ENV') === 'production'? '' : '',
+    'authorize_net_user' => env('APP_ENV') === 'production'? env('AUTHORIZE_NET_USER') : env('AUTHORIZE_NET_USER_DEV'),
+    'authorize_net_pass' => env('APP_ENV') === 'production'? env('AUTHORIZE_NET_PASS') : env('AUTHORIZE_NET_PASS_DEV'),
 
-    'STRIPE_USER' => '',
-    'STRIPE_PASS' => '',
+    'stripe_key' => env('APP_ENV') === 'production'? env('STRIPE_KEY') : env('STRIPE_KEY_TEST'),
+    'stripe_secret' => env('APP_ENV') === 'production'? env('STRIPE_SECRET') : env('STRIPE_SECRET_TEST') ,
 
     'SQUARE_USER' => '',
     'SQUARE_PASS' => '',
 
-    'shipping_connector' => 'Newelement\\Shoppe\\Http\\Controllers\\ShippingController@getShippingCosts',
-    'taxes_connector' => 'Newelement\\Shoppe\\Http\\Controllers\\TaxesController@getTaxes',
-    'payment_connector' => 'Newelement\\Shoppe\\Http\\Controllers',
+    'shipping_connector' => '\\Newelement\\Shoppe\\Connectors\\Shipping',
+    'taxes_connector' => '\\Newelement\\Shoppe\\Connectors\\Taxes',
+    'payment_connector' => '\\Newelement\\Shoppe\\Connectors\\Payment',
 
 ];

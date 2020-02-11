@@ -6,15 +6,32 @@ const HTTP = axios.create(axios.defaults.headers.common = {
     'Content-Type': 'multipart/form-data'
 });
 
-let modalMessage = '',
-thisVariation = {};
+let $q = document.querySelector.bind(document),
+    $$q = document.querySelectorAll.bind(document),
+    modalMessage = '',
+    thisVariation = {},
+    checkoutErrors = [],
+    subTotal = 0.00,
+    shipping = 0.00,
+    taxes = 0.00,
+    total = 0.00;
 
-let $shoppeAddCartAlert = document.querySelector('#shoppe-product-alert'),
-$shippingAddressFields = document.querySelectorAll('.shipping-address-field'),
-$shippingTaxesLoader = document.querySelector('.shipping-taxes-loader'),
-$shippingRatesList = document.querySelector('.shipping-rates-list'),
-$submitOrderBtn = document.querySelector('.submit-order-btn'),
-$sameAsShipping = document.querySelector('#same-as-shipping');
+let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
+    $shippingAddressFields = $$q('.shipping-address-field'),
+    $shippingTaxesLoader = $q('.shipping-taxes-loader'),
+    $checkoutStepsWrap = $q('.checkout-steps-wrap'),
+    $shippingRatesList = $q('.shipping-rates-list'),
+    $submitOrderBtn = $q('.submit-order-btn'),
+    $sameAsShipping = $q('#same-as-shipping'),
+    $newBillingAddress = $q('#new-billing-address'),
+    $newShippingAddress = $q('#new-shipping-address'),
+    $checkoutAdvBtns = $$q('.checkout-adv-btn'),
+    $checkoutPrevBtns = $$q('.checkout-prev-btn'),
+    $checkoutFormSections = $$q('.checkout-form-section'),
+    $checkoutSteps = $$q('.checkout-step'),
+    $checkoutShippingReview = $q('#checkout-shipping-review'),
+    $checkoutBillingReview = $q('#checkout-billing-review'),
+    $checkoutMessages = $q('.checkout-messages');
 
 let alertTypes = [
     'alert-primary',
@@ -45,20 +62,37 @@ function checkArrays( arrA, arrB ){
     return cA === cB;
 }
 
+function debounce(func, wait, immediate) {
+    let timeout;
+    return function executedFunction() {
+        let context = this;
+        let args = arguments;
+        let later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        let callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+};
+
+
 /*
 * SHIPPING AND TAXES
 *
 *
 */
 let getShipping = async () => {
-    let shipping = 0.00;
+    shipping = 0.00;
     let formData = new FormData();
-    formData.append('address', document.querySelector('#shipping-address').value );
-    formData.append('address2', document.querySelector('#shipping-address2').value);
-    formData.append('city', document.querySelector('#shipping-city').value);
-    formData.append('state', document.querySelector('#shipping-state').value);
-    formData.append('zip', document.querySelector('#shipping-zip-code').value);
-    formData.append('country', document.querySelector('#shipping-country').value);
+    formData.append('address', $q('#shipping-address').value );
+    formData.append('address2', $q('#shipping-address2').value);
+    formData.append('city', $q('#shipping-city').value);
+    formData.append('state', $q('#shipping-state').value);
+    formData.append('zip', $q('#shipping-zip-code').value);
+    formData.append('country', $q('#shipping-country').value);
 
     return HTTP.post('/api/shipping', formData)
     .then( response => {
@@ -66,19 +100,21 @@ let getShipping = async () => {
     })
     .catch(e => {
         console.log('shipping error', e);
+        $shippingTaxesLoader.classList.remove('loading');
+        logCheckoutError('shipping', e.message);
     });
 };
 
 let getTaxes = async (shipping) => {
-    let taxes = 0.00;
+    taxes = 0.00;
     let formData = new FormData();
     formData.append('shipping', shipping );
-    formData.append('address', document.querySelector('#shipping-address').value );
-    formData.append('address2', document.querySelector('#shipping-address2').value);
-    formData.append('city', document.querySelector('#shipping-city').value);
-    formData.append('state', document.querySelector('#shipping-state').value);
-    formData.append('zip', document.querySelector('#shipping-zip-code').value);
-    formData.append('country', document.querySelector('#shipping-country').value);
+    formData.append('address', $q('#shipping-address').value );
+    formData.append('address2', $q('#shipping-address2').value);
+    formData.append('city', $q('#shipping-city').value);
+    formData.append('state', $q('#shipping-state').value);
+    formData.append('zip', $q('#shipping-zip-code').value);
+    formData.append('country', $q('#shipping-country').value);
 
     return HTTP.post('/api/taxes', formData)
     .then( response => {
@@ -86,11 +122,17 @@ let getTaxes = async (shipping) => {
     })
     .catch(e => {
         console.log('taxes error', e);
+        $shippingTaxesLoader.classList.remove('loading');
     });
 };
 
 function calcOrderTotal(){
-
+    subTotal = $q('.sub-total').innerHTML;
+    total = parseFloat(subTotal) + parseFloat(shipping) + parseFloat(taxes);
+    $q('.sub-total').innerHTML = parseFloat(subTotal).toFixed(2);
+    $q('.shipping').innerHTML = parseFloat(shipping).toFixed(2);
+    $q('.taxes').innerHTML = parseFloat(taxes).toFixed(2);
+    $q('.total').innerHTML = parseFloat(total).toFixed(2);
 }
 
 function validateShippingFields(){
@@ -109,15 +151,15 @@ function validateShippingFields(){
 
         getShipping().then( (rates) => {
 
-            let rate = rates[0].amount;
+            shipping = rates.rates[0].amount;
 
             $shippingRatesList.innerHTML = '';
             let rateItems = '';
-            rates.forEach( (v, i) => {
+            rates.rates.forEach( (v, i) => {
                 let checked = i === 0? 'checked="checked"' : '';
                 rateItems += '<li class="rate-item">';
                     rateItems += '<label>';
-                    rateItems += '<input type="radio" name="shipping_rate" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.amount+'">';
+                    rateItems += '<input type="radio" name="shipping_rate" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
                     rateItems += ' <span class="rate-service">'+v.carrier +' '+v.service+'</span> $<span class="rate-amount">'+v.amount+'</span>';
                     rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div>';
                     rateItems += '</label>';
@@ -125,18 +167,39 @@ function validateShippingFields(){
             });
             $shippingRatesList.innerHTML = rateItems;
 
-            document.querySelector('.shipping').innerHTML = rate;
+            $q('.shipping').innerHTML = shipping;
 
-            getTaxes(rate).then( (taxes) => {
+            let $shippingRates = $$q('.shipping-rates');
+            if( $shippingRates.length ){
+                $shippingRates.forEach( (el) =>  {
+                    el.addEventListener( 'change', (e) => {
+                        if( e.target.checked ){
+                            if($shippingTaxesLoader){
+                                $shippingTaxesLoader.classList.add('loading');
+                            }
+                            shipping = e.target.getAttribute('data-rate');
 
-                document.querySelector('.taxes').innerHTML = taxes;
+                            getTaxes(shipping).then( (estTaxes) => {
+                                taxes = estTaxes;
+                                calcOrderTotal();
+                                if($shippingTaxesLoader){
+                                    $shippingTaxesLoader.classList.remove('loading');
+                                }
+                            });
 
+                            calcOrderTotal();
+                        }
+                    });
+                });
+            }
+
+            getTaxes(shipping).then( (estTaxes) => {
+                taxes = estTaxes;
                 calcOrderTotal();
-
                 if($shippingTaxesLoader){
                     $shippingTaxesLoader.classList.remove('loading');
                 }
-            })
+            });
         });
 
     } else {
@@ -146,17 +209,227 @@ function validateShippingFields(){
     }
 }
 
+function showCheckoutErrors(){
+    let messages = '';
+    $checkoutMessages.style.display = 'none';
+
+    checkoutErrors.forEach( (m) => {
+        messages += m+'<br>';
+    });
+
+    if( checkoutErrors.length ){
+        $checkoutMessages.innerHTML = messages;
+        $checkoutMessages.style.display = 'block';
+    }
+}
+
+function validateShipping(){
+    checkoutErrors = [];
+
+    let $shippingOption = $q('[name="shipping_address_option"]:checked');
+
+    if( $shippingOption === null ){
+        checkoutErrors.push('Please choose a shipping option.');
+    }
+
+    if( $shippingOption.value === 'new_shipping_address' ){
+        let reqFields = $$q('.new-shipping-address [data-required]');
+
+        reqFields.forEach( (el) => {
+            el.classList.remove('border-danger');
+        });
+
+        reqFields.forEach( (el) => {
+            let message = el.getAttribute('data-required-message');
+            if( el.value === '' ){
+                el.classList.add('border-danger');
+                checkoutErrors.push(message);
+            }
+        });
+    }
+
+    showCheckoutErrors();
+
+    return checkoutErrors.length ? false : true;
+}
+
+function validatePayment(){
+    checkoutErrors = [];
+
+    let reqFields = $$q('#billing-address-fields [data-required]');
+
+    reqFields.forEach( (el) => {
+        el.classList.remove('border-danger');
+    });
+
+    reqFields.forEach( (el) => {
+        let message = el.getAttribute('data-required-message');
+        if( el.value === '' ){
+            el.classList.add('border-danger');
+            checkoutErrors.push(message);
+        }
+    });
+
+    /*
+    $q('#billing-address').value;
+    $q('#billing-address2').value
+    $q('#billing-city').value
+    $q('#billing-state').value
+    $q('#billing-zip-code').value
+    $q('#billing-country').value
+    */
+    showCheckoutErrors();
+
+    return checkoutErrors.length ? false : true;
+}
+
+function validateReview(){
+    checkoutErrors = [];
+
+    showCheckoutErrors();
+}
+
+function setCheckoutStep(step){
+    $checkoutFormSections.forEach( (el) => {
+        el.classList.remove('current');
+    });
+
+    switch(step){
+        case 1:
+        // SHIPPING
+
+            $checkoutSteps[1].classList.remove('current');
+            $checkoutSteps[1].classList.remove('done');
+            $checkoutSteps[0].classList.remove('done');
+            $checkoutSteps[2].classList.remove('current');
+            $checkoutSteps[2].classList.remove('done');
+            $checkoutFormSections[0].classList.add('current');
+            $q('#checkout-step-3-btn').classList.add('visible-hide');
+            $q('#checkout-step-2-btn').classList.remove('visible-hide');
+            $q('#checkout-submit-btn').classList.add('visible-hide');
+
+        break;
+        case 2:
+        // PAYMENT
+
+            $checkoutSteps[0].classList.add('done');
+            $checkoutSteps[1].classList.add('current');
+            $checkoutSteps[2].classList.remove('current');
+            $checkoutSteps[1].classList.remove('done');
+            $checkoutSteps[2].classList.remove('done');
+            $checkoutFormSections[1].classList.add('current');
+            $q('#checkout-step-2-btn').classList.add('visible-hide');
+            $q('#checkout-step-3-btn').classList.remove('visible-hide');
+            $q('#checkout-submit-btn').classList.add('visible-hide');
+
+        break;
+        case 3:
+        // REVIEW
+
+            $checkoutSteps[0].classList.add('done');
+            $checkoutSteps[1].classList.add('done');
+            $checkoutSteps[2].classList.add('current');
+            $checkoutFormSections[2].classList.add('current');
+            $q('#checkout-step-3-btn').classList.add('visible-hide');
+            $q('#checkout-step-2-btn').classList.add('visible-hide');
+            $q('#checkout-submit-btn').classList.remove('visible-hide');
+
+        break;
+    }
+}
+
+function showHideStepLoading(){
+    $checkoutStepsWrap.classList.add('loading');
+    setTimeout( () => {
+        $checkoutStepsWrap.classList.remove('loading');
+    }, 500);
+}
+
+function logCheckoutError(type, error){
+    checkoutErrors = [];
+    let message = 'We are sorry, but our '+type+' service is having technical issues.';
+    checkoutErrors.push(message);
+    showCheckoutErrors();
+}
+
+function buildCheckoutReview(){
+
+    let shippingAddress = $q('#shipping-address').value+'<br>';
+        shippingAddress += $q('#shipping-address2').value !== ''? $q('#shipping-address2').value+'<br>' : '';
+        shippingAddress += $q('#shipping-city').value+' '+$q('#shipping-state').value+', '+$q('#shipping-zip-code').value+'<br>';
+        shippingAddress += $q('#shipping-country').value;
+
+    /*
+    let billingAddress = $q('#billing-address').value+'<br>';
+        billingAddress += $q('#billing-address2').value !== ''? $q('#billing-address2').value+'<br>' : '';
+        billingAddress += $q('#billing-city').value+' '+$q('#billing-state').value+', '+$q('#billing-zip-code').value+'<br>';
+        billingAddress += $q('#billing-country').value;
+*/
+    if( $checkoutShippingReview ){
+        $checkoutShippingReview.innerHTML = shippingAddress;
+    }
+    /*
+    if( $checkoutBillingReview ){
+        $checkoutBillingReview.innerHTML = billingAddress;
+    }*/
+
+}
+
+
+/*
+* DOM LOAD EVENTS
+*
+*
+*
+*/
 window.addEventListener('DOMContentLoaded', (e) => {
 
-    let $productImageSelected = document.querySelector('.product-image-selected'),
-    $productThumbs = document.querySelectorAll('.product-image-thumb'),
-    $addCartBtn = document.querySelectorAll('.add-to-cart-btn'),
-    $productAttributeList = document.querySelectorAll('.product-attribute-list'),
-    $productImageLink = document.querySelector('.product-image-selected a'),
-    $productPrice = document.querySelector('#price'),
-    $productStock = document.querySelector('#stock'),
-    $productPartNumber = document.querySelector('#mfg-part-number'),
-    $variationId = document.querySelector('#variation-id');
+    let $productImageSelected = $q('.product-image-selected'),
+    $productThumbs = $$q('.product-image-thumb'),
+    $addCartBtn = $$q('.add-to-cart-btn'),
+    $productAttributeList = $$q('.product-attribute-list'),
+    $productImageLink = $q('.product-image-selected a'),
+    $productPrice = $q('#price'),
+    $productStock = $q('#stock'),
+    $productPartNumber = $q('#mfg-part-number'),
+    $variationId = $q('#variation-id');
+
+    /*
+    * STRIPE JS
+    *
+    *
+    */
+    if( typeof Stripe !== 'undefined' ){
+        let stripe = Stripe(app.stripe_token);
+        let elements = stripe.elements();
+        let card = elements.create('card');
+        card.mount('#card-element');
+
+        function stripeTokenHandler(token) {
+            // Insert the token ID into the form so it gets submitted to the server
+            let form = document.getElementById('checkout-form');
+            let hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', 'token');
+            hiddenInput.setAttribute('value', token.id);
+            form.appendChild(hiddenInput);
+            form.submit();
+        }
+
+        let form = document.getElementById('checkout-form');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            stripe.createToken(card).then(function(result) {
+                if (result.error) {
+                    let errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                } else {
+                    stripeTokenHandler(result.token);
+                }
+            });
+        });
+    }
+
 
 
     /*
@@ -173,7 +446,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 let currHeight = $productImageSelected.offsetHeight;
                 $productImageSelected.style.minHeight = currHeight+'px';
                 $productImageSelected.innerHTML = '<a href="'+href+'"><img src="'+medium+'" alt=""></a>';
-                document.querySelector('.product-image-selected a').addEventListener('click', function(e) {
+                $q('.product-image-selected a').addEventListener('click', function(e) {
                     e.preventDefault();
                 });
                 $productThumbs.forEach(function(el){
@@ -252,8 +525,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         $productPartNumber.innerHTML = thisVariation.mfg_part_number;
                     }
                     if( thisVariation.image ){
-                        let $variationImage = document.querySelector('#variation-image-'+thisVariation.id);
-                        let $variationImageLink = document.querySelector('#variation-image-'+thisVariation.id+' a');
+                        let $variationImage = $q('#variation-image-'+thisVariation.id);
+                        let $variationImageLink = $q('#variation-image-'+thisVariation.id+' a');
                         $variationImageLink.click();
                     }
                 }
@@ -267,23 +540,50 @@ window.addEventListener('DOMContentLoaded', (e) => {
     *
     *
     */
+    let delayShippingFields = debounce(validateShippingFields, 500);
+
     if( $shippingAddressFields.length > 0 ){
         validateShippingFields();
         $shippingAddressFields.forEach( (el) => {
-            el.addEventListener('blur', validateShippingFields);
+            el.addEventListener('blur', delayShippingFields);
+            el.addEventListener('keyup', delayShippingFields);
         });
+        $q('#shipping-state').addEventListener('change', delayShippingFields);
+        $q('#shipping-country').addEventListener('change', delayShippingFields);
     }
 
     if( $sameAsShipping ){
         $sameAsShipping.addEventListener('change', (el) => {
-            console.log(el);
             if( el.target.checked ){
-                document.querySelector('#billing-address').value = document.querySelector('#shipping-address').value;
-                document.querySelector('#billing-address2').value = document.querySelector('#shipping-address2').value;
-                document.querySelector('#billing-city').value = document.querySelector('#shipping-city').value;
-                document.querySelector('#billing-state').value = document.querySelector('#shipping-state').value;
-                document.querySelector('#billing-zip-code').value = document.querySelector('#shipping-zip-code').value;
-                document.querySelector('#billing-country').value = document.querySelector('#shipping-country').value;
+                $q('.new-billing-address').style.display = 'none';
+                $q('#billing-address').value = $q('#shipping-address').value;
+                $q('#billing-address2').value = $q('#shipping-address2').value;
+                $q('#billing-city').value = $q('#shipping-city').value;
+                $q('#billing-state').value = $q('#shipping-state').value;
+                $q('#billing-zip-code').value = $q('#shipping-zip-code').value;
+                $q('#billing-country').value = $q('#shipping-country').value;
+            } else {
+                $q('.new-billing-address').style.display = 'block';
+            }
+        });
+    }
+
+    if( $newBillingAddress ){
+        $newBillingAddress.addEventListener('change', (el) => {
+            if( el.target.checked ){
+                $q('.new-billing-address').style.display = 'block';
+            } else {
+                $q('.new-billing-address').style.display = 'none';
+            }
+        });
+    }
+
+    if( $newShippingAddress ){
+        $newShippingAddress.addEventListener('change', (el) => {
+            if( el.target.checked ){
+                $q('.new-shipping-address').style.display = 'block';
+            } else {
+                $q('.new-shipping-address').style.display = 'none';
             }
         });
     }
@@ -293,10 +593,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
             e.preventDefault();
             let messages = [];
             let html = '';
-            let $checkOutMessages = document.querySelector('.checkout-messages');
+            let $checkOutMessages = $q('.checkout-messages');
             $checkOutMessages.style.display = 'none';
             $checkOutMessages.innerHTML = '';
-            let $requireds = document.querySelectorAll('[data-required]');
+            let $requireds = $$q('[data-required]');
             if( $requireds.length ){
                 $requireds.forEach( (el) => {
                     if( el.value === '' ){
@@ -318,6 +618,67 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             }
 
+        });
+    }
+
+
+    /*
+    * CHECKOUT STEP BUTTONS
+    *
+    *
+    */
+
+    if( $checkoutAdvBtns.length ){
+        $checkoutAdvBtns.forEach( (btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                let step = parseInt(e.target.getAttribute('data-step'));
+                switch(step){
+                    case 1:
+                        setCheckoutStep(step);
+                    break;
+                    case 2:
+                        let vShipping = validateShipping();
+                        showHideStepLoading();
+                        if( vShipping ){
+                            $checkoutFormSections.forEach( (el) => {
+                                el.classList.remove('current');
+                            });
+                            setCheckoutStep(step);
+                        }
+                    break;
+                    case 3:
+                        let vPayment = validatePayment();
+                        showHideStepLoading();
+                        if( vPayment ){
+                            $checkoutFormSections.forEach( (el) => {
+                                el.classList.remove('current');
+                            });
+                            setCheckoutStep(step);
+                            buildCheckoutReview();
+                        }
+                    break;
+                }
+            });
+        });
+    }
+
+    if( $checkoutPrevBtns.length ){
+        $checkoutPrevBtns.forEach( (btn) => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                let step = parseInt(e.target.getAttribute('data-step'));
+                switch(step){
+                    case 1:
+                        showHideStepLoading();
+                        setCheckoutStep(step);
+                    break;
+                    case 2:
+                        showHideStepLoading();
+                        setCheckoutStep(step);
+                    break;
+                }
+            });
         });
     }
 

@@ -62,9 +62,7 @@
     width: 70px;
 }
 
-.shipping-taxes-loader{
-    display: block;
-    padding: 12px;
+.checkout-steps-wrap{
     position: relative;
 
     &.loading{
@@ -96,6 +94,79 @@
     }
 }
 
+.shipping-taxes-loader{
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    flex-wrap: wrap;
+   // margin-bottom: 0;
+
+    dt{
+        width: 50%;
+        color: #777;
+        font-size: 14px;
+    }
+
+    dd{
+        width: 50%;
+        color: #777;
+        padding-left: 12px;
+        font-size: 14px;
+        text-align: right;
+    }
+
+    &.loading{
+
+        &:before{
+            display: block;
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255, .5);
+            z-index: 1;
+        }
+        &:after{
+            display: inline-block;
+            width: 30px;
+            height: auto;
+            color: #fff;
+            content: url('data:image/svg+xml; utf8, <svg focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M460.115 373.846l-6.941-4.008c-5.546-3.202-7.564-10.177-4.661-15.886 32.971-64.838 31.167-142.731-5.415-205.954-36.504-63.356-103.118-103.876-175.8-107.701C260.952 39.963 256 34.676 256 28.321v-8.012c0-6.904 5.808-12.337 12.703-11.982 83.552 4.306 160.157 50.861 202.106 123.67 42.069 72.703 44.083 162.322 6.034 236.838-3.14 6.149-10.75 8.462-16.728 5.011z"></path></svg>');
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: spinning 1.5s linear infinite;
+            z-index: 2;
+        }
+    }
+}
+
+.checkout-total{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    padding-top: 24px;
+    border-top: 1px solid #ccc;
+
+    dt{
+        width: 50%;
+        color: #777;
+        font-size: 18px;
+    }
+
+    dd{
+        width: 50%;
+        color: #777;
+        padding-left: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        text-align: right;
+    }
+}
+
 .fa-spinner-third{
     fill: #ffffff;
 }
@@ -108,12 +179,11 @@
 .checkout-step{
     display: flex;
     flex-direction: row;
-    flex-grow: 1;
     align-items: center;
     padding: 12px 0;
     color: #999;
     font-size: 1.25rem;
-    transition: color .35s ease;
+    transition: color .25s ease;
 
     &:first-child{
         flex-grow: inherit;
@@ -128,12 +198,12 @@
         text-align: center;
         line-height: 29px;
         border: 1px solid #999;
-        transition: border-color .35s ease, color .35s ease;;
+        transition: border-color .35s ease, color .25s ease;
     }
 
     .step-div{
         display: block;
-        flex-grow: 1;
+        //flex-grow: 1;
         width: 50px;
         height: 3px;
         background-color: #eee;
@@ -149,8 +219,17 @@
             border-color: #007bff;
         }
 
+    }
+
+    &.done{
+        color: #28a745;
+
+        .checkout-step-number{
+            border-color: #28a745;
+        }
+
         .step-div{
-            background-color: #007bff;
+            background-color: #28a745;
         }
     }
 }
@@ -162,6 +241,7 @@
         display: flex;
         flex-direction: row;
         align-items: center;
+        justify-content: center;
     }
 }
 
@@ -169,11 +249,48 @@
     margin-bottom: 48px;
 }
 
+.checkout-form-section{
+    display: none;
+
+    &.current{
+        display: block;
+    }
+}
+
+.visible-hide{
+    visibility: hidden;
+    display: none;
+}
+
+.visible-show{
+    visibility: visible;
+}
+
+.checkout-set-actions{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 0;
+
+    .btn:last-of-type{
+        margin-left: auto;
+    }
+}
+
 .shipping-rates-list{
     display: block;
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+.StripeElement {
+    box-sizing: border-box;
+    height: 40px;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
 }
 
 @keyframes spinning {

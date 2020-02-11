@@ -1,11 +1,9 @@
 <?php
-namespace Newelement\Shoppe\Http\Controllers;
+namespace Newelement\Shoppe\Connectors;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use Newelement\Shoppe\Traits\CartData;
 
-class TaxesController extends Controller
+class Taxes
 {
     use CartData;
 
@@ -22,13 +20,12 @@ class TaxesController extends Controller
         $this->taxjar = \TaxJar\Client::withApiKey( config('shoppe.taxjar_token_live') );
     }
 
-    public function getTaxes( $shippingCost, $address, $cartItems = [] )
+    public function getTaxes( $shippingCost, $address )
     {
-        $message = 'Tax collected successful.';
-
+        $cart = $this->getCartItems();
         //$response = $this->alavaraFree($address);
-        //$response = $this->avalaraPro($shippingCost, $address, $cartItems);
-        $response = $this->taxJar($shippingCost, $address, $cartItems);
+        //$response = $this->avalaraPro($shippingCost, $address, $cart);
+        $response = $this->taxJar($shippingCost, $address, $cart);
 
         $success = $response? true : false;
         $taxAmount = $response? $response : 0.00;
@@ -60,21 +57,26 @@ class TaxesController extends Controller
             $rate = $data->totalRate;
             $taxAmount = round( ( $rate * $cartItems['sub_total'] ), 2, PHP_ROUND_HALF_DOWN);
 
-            return $taxAmount;
-
         } catch ( \Exception $e ){
-            $success = false;
             $this->message = $e->getMessage();
             return false;
         }
+
+        return $taxAmount;
     }
 
-    protected function avalaraPro($shippingCost, $address, $cartItems)
+
+    /*
+    * AVALARA PRO
+    *
+    *
+    */
+    protected function avalaraPro($shippingCost, $address, $cart)
     {
         $tb = new \Avalara\TransactionBuilder($this->avalara, "DEFAULT", \Avalara\DocumentType::C_SALESINVOICE, 'ABC');
         $tb->withAddress('SingleLocation', $address['street1'], $address['street2'], null, $address['city'], $address['state'], $address['zip'], $address['country']);
 
-        foreach( $cartItems['items'] as $item ){
+        foreach( $cart['items'] as $item ){
             $tb->withLine( ($item['price'] * $item['qty']), $item['qty'], null, null)->withItemDiscount('false');
         }
 
@@ -92,7 +94,13 @@ class TaxesController extends Controller
 
     }
 
-    protected function taxJar($shippingCost, $address, $cartItems)
+
+    /*
+    * TAXJAR
+    *
+    *
+    */
+    protected function taxJar($shippingCost, $address, $cart)
     {
 
         $order = [
@@ -102,12 +110,12 @@ class TaxesController extends Controller
           'to_city' => $address['city'],
           'to_street' => $address['street1'],
           'to_street2' => $address['street2'],
-          'amount' => $cartItems['sub_total'] + $shippingCost,
+          'amount' => $cart['sub_total'] + $shippingCost,
           'shipping' => $shippingCost,
         ];
 
         $i = 0;
-        foreach( $cartItems['items'] as $item ){
+        foreach( $cart['items'] as $item ){
             $order['line_items'][] =
             [
               'id' => $i,
@@ -119,7 +127,12 @@ class TaxesController extends Controller
             $i++;
         }
 
-        $order_taxes = $this->taxjar->taxForOrder($order);
+        try{
+            $order_taxes = $this->taxjar->taxForOrder($order);
+        } catch( \Exception $e ){
+            $this->message = $e->getMessage();
+            return false;
+        }
 
         return $order_taxes->amount_to_collect;
     }

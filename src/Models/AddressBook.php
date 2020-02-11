@@ -4,15 +4,11 @@ namespace Newelement\Shoppe\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\User;
 
-class Order extends Model
+class AddressBook extends Model
 {
-    use SoftDeletes;
-
-    public static function create( $checkout )
+    public function user()
     {
-        return 00001;
+        return $this->belongsTo('Newelement\Neutrino\Models\User');
     }
-
 }

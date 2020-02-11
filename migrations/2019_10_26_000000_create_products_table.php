@@ -54,6 +54,9 @@ class CreateProductsTable extends Migration
             $table->timestamps();
             $table->softDeletes();
             $table->index('slug');
+            $table->index('title');
+            $table->index('content');
+            $table->index('short_content');
 			$table->index('product_type');
             $table->index('status');
         });

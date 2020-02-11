@@ -91,4 +91,11 @@ trait CartData
         return $cartUser;
     }
 
+
+    public function deleteUserCart()
+    {
+        $cartUser = $this->getCartUser();
+        Cart::where('user_id', $cartUser)->orWhere('temp_user_id', $cartUser)->delete();
+    }
+
 }
