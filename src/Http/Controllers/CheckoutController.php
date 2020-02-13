@@ -8,7 +8,9 @@ use Newelement\Shoppe\Traits\CartData;
 use Newelement\Shoppe\Models\AddressBook;
 use Newelement\Shoppe\Models\Customer;
 use Newelement\Shoppe\Models\Order;
+use Newelement\Shoppe\Models\OrderLine;
 use Illuminate\Support\Facades\Hash;
+use Auth;
 
 class CheckoutController extends Controller
 {
@@ -53,6 +55,7 @@ class CheckoutController extends Controller
         $taxesConnector = app('Taxes');
 
         $email = $request->email;
+        $billing_name = $request->cc_name;
         $cart = $this->getCartItems();
         $items = $cart['items'];
         $subTotal = $cart['sub_total'];
@@ -69,6 +72,7 @@ class CheckoutController extends Controller
         $checkout['token'] = $token;
         $checkout['description'] = $refId;
         $checkout['ref_id'] = $refId;
+
 
         /*
         * Shipping
@@ -97,10 +101,11 @@ class CheckoutController extends Controller
         }
 
         $checkout['shipping_amount'] = $rate['rates']['amount'];
+        $checkout['shipping_carrier'] = $rate['rates']['carrier'];
         $checkout['shipping_service'] = $rate['rates']['service'];
         $checkout['shipping_service_id'] = $rate['rates']['service_id'];
         $checkout['shipping_est_days'] = $rate['rates']['estimated_days'];
-        $checkout['object_id'] = isset($rate['rates']['object_id'])? $rate['rates']['object_id'] : null ;
+        $checkout['shipping_object_id'] = isset($rate['rates']['object_id'])? $rate['rates']['object_id'] : null ;
 
 
         /*
@@ -122,7 +127,7 @@ class CheckoutController extends Controller
 
 
         /*
-        * Totals
+        * Totals and Charge
         *
         *
         */
@@ -130,7 +135,11 @@ class CheckoutController extends Controller
 
         $checkout['amount'] = $amount;
 
+        // THE CHARGE
+        $paymentConnector->email = strtolower($checkout['email']);
         $charge = $paymentConnector->charge( $checkout, $saveCard );
+
+        $checkout['payment_connector'] = $paymentConnector->payment_connector;
 
         if( !$charge['success'] ){
             $code = 500;
@@ -141,17 +150,82 @@ class CheckoutController extends Controller
             }
         }
 
+
+        /*
+        * Create customer
+        *
+        *
+        */
+        $user = Customer::createOrGet( $billing_name, $email );
         if( $saveCard ){
             $checkout['customer_id'] = $charge['customer_id'];
-            Customer::saveCard( $checkout );
+            $savedCard = Customer::saveCard( $checkout, $user );
         }
 
-        // Insert new order
-        $orderId = Order::create( $checkout );
-        $checkout['order_id'] = $orderId;
+
+        /*
+        * Insert order
+        *
+        *
+        */
+        try{
+            $order = new Order;
+            $order->ref_id = $refId;
+            $order->user_id = Auth::check()? Auth::user()->id : $user->id;
+            $order->status = 'created';
+            $order->carrier = isset( $checkout['shipping_carrier'] )? $checkout['shipping_carrier'] : null;
+            $order->shipping_service = isset( $checkout['shipping_service'] )? $checkout['shipping_service'] : null;
+            $order->shipping_id = isset( $checkout['shipping_service_id'] )? $checkout['shipping_service_id'] : null;
+            $order->shipping_object_id = isset( $checkout['shipping_object_id'] )? $checkout['shipping_object_id'] : null;
+            $order->shipping_amount = isset( $checkout['shipping_amount'] )? $checkout['shipping_amount'] : 0.00;
+            $order->tax_amount = isset( $checkout['tax_amount'] )? $checkout['tax_amount'] : 0.00;
+            $order->discount_code = isset( $checkout['discount_code'] )? $checkout['discount_code'] : null;
+            $order->discount_amount = isset( $checkout['discount_amount'] )? $checkout['discount_amount'] : 0.00;
+            $order->created_by = Auth::check()? Auth::user()->id : $user->id;
+            $order->updated_by = Auth::check()? Auth::user()->id : $user->id;
+            $order->save();
+        } catch ( \Exception $e  ){
+
+            if( $request->ajax() ){
+                return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
+            } else {
+                return back()->with('error', $e->getMessage() );
+            }
+
+        }
+
+        // ORDER ID
+        $checkout['order_id'] = $order->id;
+
+        // Order lines
+        $lines = [];
+        foreach( $items as $item ){
+            $lines[] = [
+                'order_id' => $checkout['order_id'],
+                'product_id' => $item->product->id,
+                'price' => $item->price,
+                'qty' => $item->qty,
+                'variation' => $item->variationFormatted? $item->variationFormatted : null,
+                'created_by' => Auth::check()? Auth::user()->id : $user->id,
+                'updated_by' => Auth::check()? Auth::user()->id : $user->id,
+            ];
+        }
+
+        try{
+            $orderLines = new OrderLine;
+            OrderLine::insert($lines);
+        } catch ( \Exception $e ){
+            if( $request->ajax() ){
+                return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
+            } else {
+                return back()->with('error', $e->getMessage() );
+            }
+        }
+
 
         // Send out order confirmation emails
         //
+
 
         // Empty the user's cart
         $this->deleteUserCart();

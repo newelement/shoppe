@@ -15,23 +15,22 @@ class CreateOrderLinesTable extends Migration
     {
         Schema::create('order_lines', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->bigInteger('user_id');
-			$table->string('address_type', 100);
-			$table->string('name', 300)->nullable();
-            $table->string('address', 400)->nullable();
-            $table->string('address2', 400)->nullable();
-            $table->string('city', 300)->nullable();
-            $table->string('state', 3)->nullable();
-            $table->string('zipcode', 30)->nullable();
-            $table->string('country', 4)->nullable();
-            $table->tinyInteger('default')->default(0);
+            $table->bigInteger('order_id');
+            $table->bigInteger('product_id');
+			$table->decimal('price', 9, 2)->nullable();
+            $table->integer('qty')->default(1);
+			$table->string('variation', 300)->nullable();
+            $table->string('tracking_number', 200)->nullable();
+            $table->dateTime('shipped_on', 0)->nullable();
+            $table->text('file')->nullable();
+            $table->text('notes')->nullable();
+            $table->string('status', 40)->default('created');
 			$table->bigInteger('created_by')->nullable();
 			$table->bigInteger('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
-            $table->index('address_type');
-			$table->index('user_id');
-            $table->index('default');
+			$table->index('order_id');
+            $table->index('product_id');
         });
     }
 

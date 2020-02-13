@@ -23,6 +23,7 @@ class CreateOrdersTable extends Migration
             $table->string('shipping_id', 50)->nullable();
             $table->string('shipping_object_id', 50)->nullable();
             $table->decimal('shipping_amount', 9, 2)->nullable();
+            $table->string('tracking_number', 200)->nullable();
             $table->dateTime('shipped_on', 0)->nullable();
             $table->decimal('tax_amount', 9, 2)->nullable();
             $table->string('discount_code', 50)->nullable();

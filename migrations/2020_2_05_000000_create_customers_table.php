@@ -17,6 +17,7 @@ class CreateCustomersTable extends Migration
             $table->bigIncrements('id');
             $table->bigInteger('user_id');
 			$table->string('customer_id', 100);
+            $table->string('payment_connector', 40);
 			$table->bigInteger('created_by')->nullable();
 			$table->bigInteger('updated_by')->nullable();
             $table->timestamps();

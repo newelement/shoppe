@@ -4,15 +4,54 @@ namespace Newelement\Shoppe\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Hash;
 use App\User;
+use App\Role;
+use Auth;
+
 
 class Customer extends Model
 {
     use SoftDeletes;
 
-    public static function saveCard( $checkout )
-    {
+    protected $fillable = [
+        'user_id',
+        'customer_id',
+        'payment_connector'
+    ];
 
+    public static function saveCard( $checkout, $user )
+    {
+        $insert = self::updateOrCreate(
+           ['user_id' => $user->id,],
+           [ 'customer_id' => $checkout['customer_id'], 'payment_connector' => $checkout['payment_connector'] ]
+        );
+
+        return $insert;
+    }
+
+    public static function createOrGet( $name, $email )
+    {
+        $userExists = User::where( 'email', $email )->first();
+
+        if( !$userExists ){
+
+            $newPassword = str_random(12);
+            $role = Role::where('name', 'customer')->first();
+
+            $user = new User;
+            $user->name = $name;
+            $user->email = strtolower($email);
+            $user->password = Hash::make( $newPassword );
+            $user->avatar = '/vendor/newelement/neutrino/images/default.png';
+            $user->role_id = $role->id;
+            $user->save();
+
+        } else {
+            $user = Auth::check()? Auth::user() : $userExists;
+        }
+
+        return $user;
     }
 
 }

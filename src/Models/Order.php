@@ -10,9 +10,10 @@ class Order extends Model
 {
     use SoftDeletes;
 
-    public static function create( $checkout )
+
+    public function orderLines()
     {
-        return 00001;
+        return $this->hasMany('Newelement\Shoppe\Models\OrderLine');
     }
 
 }

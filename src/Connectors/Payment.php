@@ -3,10 +3,13 @@ namespace Newelement\Shoppe\Connectors;
 
 use \Stripe\Stripe;
 use Newelement\Shoppe\Traits\CartData;
+use Newelement\Shoppe\Traits\PaymentConnector;
 
 class Payment
 {
-    use CartData;
+    use CartData, PaymentConnector;
+
+    public $payment_connector = 'stripe';
 
     function __construct()
     {
@@ -32,14 +35,23 @@ class Payment
 
         if( $saveCard ){
 
-            try{
-                $customer = \Stripe\Customer::create([
-                    'source' => $payment['token'],
-                    'email' => $payment['email'],
-                ]);
-            } catch( \Exception $e ){
-                $error = true;
-                $message = $e->getMessage();
+            $customerId = $this->getCustomerId();
+
+            if( !$customerId ){
+
+                try{
+
+                    $customer = \Stripe\Customer::create([
+                        'source' => $payment['token'],
+                        'email' => $payment['email'],
+                    ]);
+
+                    $customerId = $customer->id;
+
+                } catch( \Exception $e ){
+                    $error = true;
+                    $message = $e->getMessage();
+                }
             }
 
             if( $error ){
@@ -53,7 +65,7 @@ class Payment
             $chargeData = [
                 'amount' => $amount,
                 'currency' => config('shoppe.currency', 'USD'),
-                'customer' => $customer->id,
+                'customer' => $customerId,
             ];
 
         } else {
@@ -100,7 +112,7 @@ class Payment
         $arr = ['transaction_id' => $transactionId, 'success' => $error? false : true, 'message' => $message, 'payload' => $charge ];
 
         if( $saveCard ){
-            $arr['customer_id'] = $customer->id;
+            $arr['customer_id'] = $customerId;
         }
 
         return $arr;
@@ -109,17 +121,6 @@ class Payment
     private function stripeAmount($amount)
     {
         return preg_replace('~\D~', '', $amount);
-    }
-
-
-    private function chargeAuthNet( $payment, $saveCard )
-    {
-
-    }
-
-    private function chargeSquare( $payment, $saveCard )
-    {
-
     }
 
 }

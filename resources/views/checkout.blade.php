@@ -244,6 +244,13 @@ $socialImages = getImageSizes($data->social_image);
                                     <div id="payment-fields" class="payment-section-fields">
 
                                         <div class="form-group row">
+                                            <label for="cc-name" class="col-sm-3 col-form-label">Name on Card</label>
+                                            <div class="col-sm-9">
+                                                <input type="text" class="form-control" id="cc-name" name="cc_name" value="{{ old('cc_name') }}" data-required data-required-message="Please enter the name on your card." required>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group row">
                                             <label for="card-element" class="col-sm-3 col-form-label">Card</label>
                                             <div class="col-sm-9">
                                                 <div id="card-element"></div>
@@ -263,13 +270,6 @@ $socialImages = getImageSizes($data->social_image);
                                         </div>
 
                                         <!--
-                                        <div class="form-group row">
-                                            <label for="cc-name" class="col-sm-3 col-form-label">Name on Card</label>
-                                            <div class="col-sm-9">
-                                                <input type="text" class="form-control" id="cc-name" name="cc_name" value="{{ old('cc_name') }}" data-required data-required-message="Please enter the name on your card." required>
-                                            </div>
-                                        </div>
-
                                         <div class="form-group row">
                                             <label for="cc-number" class="col-sm-3 col-form-label">Card Number</label>
                                             <div class="col-sm-9">
