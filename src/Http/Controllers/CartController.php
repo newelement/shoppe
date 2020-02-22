@@ -58,7 +58,9 @@ class CartController extends Controller
         }
 
         // Does this item already exist in the cart?
-        $sql = "SELECT * FROM carts WHERE (user_id = ? and product_id = ?) OR ( temp_user_id = ? and product_id = ? ) AND deleted_at IS NULL ";
+        $sql = "SELECT * FROM carts
+                WHERE ( (user_id = ? and product_id = ?) OR ( temp_user_id = ? and product_id = ? ) )
+                AND deleted_at IS NULL ";
         $params = [
             $cartUser,
             $productId,

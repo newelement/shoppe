@@ -20,6 +20,18 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
     Route::get('/product-attributes/{id}', ['uses' => $namespacePrefix.'Admin\ProductAttributesController@get', 'as' => 'products']);
     Route::delete('/product-attributes/{id}', ['uses' => $namespacePrefix.'Admin\ProductAttributesController@delete', 'as' => 'products']);
 
+    Route::get('/orders', ['uses' => $namespacePrefix.'Admin\OrderController@index', 'as' => 'shoppe']);
+    Route::put('/orders/{order}/status', ['uses' => $namespacePrefix.'Admin\OrderController@updateStatus', 'as' => 'shoppe']);
+    Route::get('/orders/{order}', ['uses' => $namespacePrefix.'Admin\OrderController@get', 'as' => 'orders']);
+    Route::put('/orders/{order}/order-lines/{orderLine}/action', ['users' => $namespacePrefix.'Admin\OrderController@updateOrderLine', 'as' => 'shoppe']);
+    Route::post('/order-lines/refund/{orderLine}', $namespacePrefix.'Admin\OrderController@refundOrderLine');
+    Route::get('/shipping-label/{order}', $namespacePrefix.'Admin\OrderController@getShippingLabel');
+    Route::get('/transaction-details/{transaction_id}', config('shoppe.payment_connector').'@getCharge');
+
+    Route::get('/shoppe', $namespacePrefix.'Admin\ShoppeController@index')->name('shoppe');
+    Route::get('/shoppe-reports', $namespacePrefix.'Admin\ShoppeReportController@index')->name('shoppe');
+    Route::get('/shoppe-settings', $namespacePrefix.'Admin\ShoppeSettingsController@index')->name('shoppe');
+
 });
 
 Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {

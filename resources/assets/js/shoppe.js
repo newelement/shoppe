@@ -11,6 +11,8 @@ let $q = document.querySelector.bind(document),
     modalMessage = '',
     thisVariation = {},
     checkoutErrors = [],
+    shippingAddressOption = false,
+    shippingAddressId = false,
     subTotal = 0.00,
     shipping = 0.00,
     taxes = 0.00,
@@ -24,7 +26,7 @@ let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $submitOrderBtn = $q('.submit-order-btn'),
     $sameAsShipping = $q('#same-as-shipping'),
     $newBillingAddress = $q('#new-billing-address'),
-    $newShippingAddress = $q('#new-shipping-address'),
+    $newShippingAddress = $$q('input[name="shipping_address_option"]'),
     $checkoutAdvBtns = $$q('.checkout-adv-btn'),
     $checkoutPrevBtns = $$q('.checkout-prev-btn'),
     $checkoutFormSections = $$q('.checkout-form-section'),
@@ -87,12 +89,22 @@ function debounce(func, wait, immediate) {
 let getShipping = async () => {
     shipping = 0.00;
     let formData = new FormData();
-    formData.append('address', $q('#shipping-address').value );
-    formData.append('address2', $q('#shipping-address2').value);
-    formData.append('city', $q('#shipping-city').value);
-    formData.append('state', $q('#shipping-state').value);
-    formData.append('zip', $q('#shipping-zip-code').value);
-    formData.append('country', $q('#shipping-country').value);
+
+    if( shippingAddressOption && shippingAddressOption === 'new' ){
+
+        formData.append('name', $q('#shipping-name').value );
+        formData.append('address', $q('#shipping-address').value );
+        formData.append('address2', $q('#shipping-address2').value);
+        formData.append('city', $q('#shipping-city').value);
+        formData.append('state', $q('#shipping-state').value);
+        formData.append('zip', $q('#shipping-zip-code').value);
+        formData.append('country', $q('#shipping-country').value);
+
+    }
+
+    if( shippingAddressOption && shippingAddressOption === 'saved' ){
+        formData.append('shipping_address_id', shippingAddressId );
+    }
 
     return HTTP.post('/api/shipping', formData)
     .then( response => {
@@ -109,12 +121,20 @@ let getTaxes = async (shipping) => {
     taxes = 0.00;
     let formData = new FormData();
     formData.append('shipping', shipping );
-    formData.append('address', $q('#shipping-address').value );
-    formData.append('address2', $q('#shipping-address2').value);
-    formData.append('city', $q('#shipping-city').value);
-    formData.append('state', $q('#shipping-state').value);
-    formData.append('zip', $q('#shipping-zip-code').value);
-    formData.append('country', $q('#shipping-country').value);
+
+    if( shippingAddressOption && shippingAddressOption === 'new' ){
+        formData.append('name', $q('#shipping-name').value );
+        formData.append('address', $q('#shipping-address').value );
+        formData.append('address2', $q('#shipping-address2').value);
+        formData.append('city', $q('#shipping-city').value);
+        formData.append('state', $q('#shipping-state').value);
+        formData.append('zip', $q('#shipping-zip-code').value);
+        formData.append('country', $q('#shipping-country').value);
+    }
+
+    if( shippingAddressOption && shippingAddressOption === 'saved' ){
+        formData.append('shipping_address_id', shippingAddressId );
+    }
 
     return HTTP.post('/api/taxes', formData)
     .then( response => {
@@ -140,12 +160,18 @@ function validateShippingFields(){
     if($shippingTaxesLoader){
         $shippingTaxesLoader.classList.add('loading');
     }
-    console.log('validate shipping');
-    $shippingAddressFields.forEach( function(el){
-        if( !el.value.length  ){
-            hasShippingAddress = false
-        }
-    });
+
+    if( shippingAddressOption && shippingAddressOption === 'new' ){
+        $shippingAddressFields.forEach( function(el){
+            if( !el.value.length  ){
+                hasShippingAddress = false;
+            }
+        });
+    }
+
+    if( !shippingAddressOption ){
+        hasShippingAddress = false;
+    }
 
     if( hasShippingAddress ){
 
@@ -228,24 +254,25 @@ function validateShipping(){
 
     let $shippingOption = $q('[name="shipping_address_option"]:checked');
 
-    if( $shippingOption === null ){
-        checkoutErrors.push('Please choose a shipping option.');
-    }
+    if( typeof $shippingOption === 'undefined' || $shippingOption === null || !$shippingOption ){
+        checkoutErrors.push('Please choose a shipping address option.');
+    } else {
 
-    if( $shippingOption.value === 'new_shipping_address' ){
-        let reqFields = $$q('.new-shipping-address [data-required]');
+        if( $shippingOption.value === 'new_shipping_address' ){
+            let reqFields = $$q('.new-shipping-address [data-required]');
 
-        reqFields.forEach( (el) => {
-            el.classList.remove('border-danger');
-        });
+            reqFields.forEach( (el) => {
+                el.classList.remove('border-danger');
+            });
 
-        reqFields.forEach( (el) => {
-            let message = el.getAttribute('data-required-message');
-            if( el.value === '' ){
-                el.classList.add('border-danger');
-                checkoutErrors.push(message);
-            }
-        });
+            reqFields.forEach( (el) => {
+                let message = el.getAttribute('data-required-message');
+                if( el.value === '' ){
+                    el.classList.add('border-danger');
+                    checkoutErrors.push(message);
+                }
+            });
+        }
     }
 
     showCheckoutErrors();
@@ -578,13 +605,20 @@ window.addEventListener('DOMContentLoaded', (e) => {
         });
     }
 
-    if( $newShippingAddress ){
-        $newShippingAddress.addEventListener('change', (el) => {
-            if( el.target.checked ){
-                $q('.new-shipping-address').style.display = 'block';
-            } else {
-                $q('.new-shipping-address').style.display = 'none';
-            }
+    if( $newShippingAddress.length ){
+        $newShippingAddress.forEach( (input) => {
+            input.addEventListener('change', (el) => {
+                if( el.target.checked && el.target.value === 'new_shipping_address' ){
+                    $q('.new-shipping-address').style.display = 'block';
+                    shippingAddressOption = 'new';
+                    shippingAddressId = false;
+                } else {
+                    $q('.new-shipping-address').style.display = 'none';
+                    shippingAddressId = el.target.value;
+                    shippingAddressOption = 'saved';
+                    validateShippingFields();
+                }
+            });
         });
     }
 

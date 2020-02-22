@@ -108,6 +108,26 @@ function getPrice($productId){
     return $product->sale_price ? $product->sale_price : $product->price;
 }
 
+function getOrderTotal( $order ){
+
+    $credits = [];
+    $debits = [];
+    foreach( $order->transactions as $trans ){
+        if( $trans->transaction_type === 'credit' ){
+            $credits[] = (float) $trans->amount;
+        }
+        if( $trans->transaction_type === 'debit' ){
+            $debits[] = (float) $trans->amount;
+        }
+    }
+
+    $credit = array_sum($credits);
+    $debit = array_sum($debits);
+
+    return $debit  - $credit;
+
+}
+
 function hasProductFilter(){
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'? 'https' : 'http';
     $x = $protocol ."://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";

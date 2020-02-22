@@ -9,22 +9,14 @@ class Payment
 {
     use CartData, PaymentConnector;
 
-    public $payment_connector = 'stripe';
+    public $connector_name = 'stripe';
 
     function __construct()
     {
         Stripe::setApiKey(config('shoppe.stripe_secret'));
     }
 
-
-    public function charge( $payment, $saveCard = false )
-    {
-
-        return $this->chargeStripe($payment, $saveCard);
-
-    }
-
-    private function chargeStripe($payment, $saveCard)
+    public function charge( $payment )
     {
         $error = false;
         $transactionId = '';
@@ -33,7 +25,7 @@ class Payment
 
         $amount = $this->stripeAmount($payment['amount']);
 
-        if( $saveCard ){
+        if( $payment['save_card'] ){
 
             $customerId = $this->getCustomerId();
 
@@ -111,11 +103,87 @@ class Payment
 
         $arr = ['transaction_id' => $transactionId, 'success' => $error? false : true, 'message' => $message, 'payload' => $charge ];
 
-        if( $saveCard ){
+        if( $payment['save_card'] ){
             $arr['customer_id'] = $customerId;
         }
 
         return $arr;
+    }
+
+
+    public function getCharge( $id )
+    {
+        $error = false;
+        $message = '';
+
+        try{
+            $charge = \Stripe\Charge::retrieve($id);
+            $message = 'Successful';
+        } catch( \Exception $e ) {
+            $error = true;
+            $message = 'There was an issue getting the charge. '.$e->getMessage();
+            return [ 'success' => false, 'message' => $message ];
+        }
+
+        $arr = [
+            'success' => true,
+            'message' => $message,
+            'status' => $charge->status,
+            'amount' => number_format($charge->amount/100, 2, '.', '' ),
+            'billing_details' => [
+                'email' => $charge->billing_details->email,
+                'name' => $charge->billing_details->name,
+                'phone' => $charge->billing_details->phone,
+                'address' => [
+                   'street1' => $charge->billing_details->address->line1,
+                   'street2' => $charge->billing_details->address->line2,
+                   'city' => $charge->billing_details->address->city,
+                   'state' => $charge->billing_details->address->state,
+                   'zip' => $charge->billing_details->address->postal_code,
+                   'country' => $charge->billing_details->address->country
+                ],
+            ],
+            'payment_details' => [
+                'type' => $charge->payment_method_details->type,
+                'method' => $charge->payment_method_details->card->brand,
+                'last_four' => $charge->payment_method_details->card->last4
+            ],
+            'payload' => $charge
+        ];
+
+        return $arr;
+    }
+
+    public function createRefund( $charge )
+    {
+        $message = 'Successful';
+        $success = true;
+        $transactionId = '';
+        $refund = '';
+
+        $total = $charge['amount'] + $charge['tax_amount'] + $charge['shipping_amount'];
+
+        try{
+            $refund = \Stripe\Refund::create([
+              'charge' => $charge['transaction_id'],
+              'amount' => $this->stripeAmount($total)
+            ]);
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        if( $success ){
+
+            $transactionId = $refund->id;
+
+            if( $refund->status !== 'succeeded' ){
+                $success = false;
+                $message = 'Error processing refund';
+            }
+        }
+
+        return ['success' => $success, 'message' => $message, 'transaction_id' => $transactionId, 'payload' => $refund ];
     }
 
     private function stripeAmount($amount)

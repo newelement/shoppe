@@ -15,7 +15,7 @@ trait PaymentConnector
         $userExists = User::where( 'email', $this->email )->first();
         $user = Auth::check()? Auth::user() : $userExists;
 
-        $customer = Customer::where(['user_id' => $user->id, 'payment_connector' => $this->payment_connector ])->first();
+        $customer = Customer::where(['user_id' => $user->id, 'payment_connector' => $this->connector_name ])->first();
 
         return $customer ? $customer->customer_id : false;
     }

@@ -7,12 +7,14 @@ class Shipping
 {
     use CartData;
 
+    public $connector_name = 'shippo';
+
     function __construct()
     {
         \Shippo::setApiKey(config('shoppe.shippo_api_token'));
     }
 
-    public function getShippingRates( $address, $service_id = false )
+    public function getShippingRates( $checkout )
     {
 
         $error = false;
@@ -61,22 +63,42 @@ class Shipping
             'height' => $height
         ];
 
-        $fromAddress = [
+        $from = [
+            'name' => 'Neutrino',
             'street1' => '130 Tannin Way',
             'city' => 'Lexington',
             'state' => 'NC',
             'zip' => '27295',
-            'country' => 'US'
+            'country' => 'US',
+            "phone" => "+1 555 341 9393",
+            "email" => "shippotle@goshippo.com"
         ];
 
-        $toAddress = [
-            'street1' => $address['street1'],
-            'street2' => $address['street2'],
-            'city' => $address['city'],
-            'state' => $address['state'],
-            'zip' => $address['zip'],
-            'country' => $address['country'],
+        $to = [
+            'name' => $checkout['shipping_address']['name'],
+            'company_name' => $checkout['shipping_address']['company_name'],
+            'street1' => $checkout['shipping_address']['street1'],
+            'street2' => $checkout['shipping_address']['street2'],
+            'city' => $checkout['shipping_address']['city'],
+            'state' => $checkout['shipping_address']['state'],
+            'zip' => $checkout['shipping_address']['zip'],
+            'country' => $checkout['shipping_address']['country'],
+            "email" => $checkout['shipping_address']['email']
         ];
+
+        try{
+            $fromAddress = \Shippo_Address::create($from);
+        } catch( \Exception $e ){
+            $error = true;
+            $message = $e->getMessage();
+        }
+
+        try{
+            $toAddress = \Shippo_Address::create($to);
+        } catch( \Exception $e ){
+            $error = true;
+            $message = $e->getMessage();
+        }
 
         try{
             $shipment = \Shippo_Shipment::create(
@@ -120,9 +142,9 @@ class Shipping
                     ];
             }
 
-            if( $service_id ){
+            if( $checkout['shipping_service_id'] ){
                 foreach( $rates as $key => $rate ){
-                    if( $service_id === $rate['service_id'] ){
+                    if( $checkout['shipping_service_id'] === $rate['service_id'] ){
                         $rates = $rate;
                     }
                 }
@@ -137,5 +159,44 @@ class Shipping
         return [ 'success' => $error? false : true, 'message' => $message,  'rates' => $rates];
     }
 
+    public function getShippingLabel($objectId)
+    {
+        $error = false;
+        $message = 'Successful';
+
+        try{
+            $transaction = \Shippo_Transaction::create([
+                'rate' => $objectId,
+                'label_file_type' => "PDF",
+                'async' => false
+            ]);
+        } catch( \Exception $e ){
+            $error = true;
+            $message = $e->getMessage();
+        }
+
+        if( !$error ){
+            if ($transaction["status"] === "SUCCESS"){
+                $label = $transaction["label_url"];
+                $tracking_number = $transaction["tracking_number"];
+                $tracking_url_provider = $transaction['tracking_url_provider'];
+            }else {
+                $error = true;
+                $message = $transaction["messages"];
+            }
+        }
+
+        if( $error ){
+            return ['success' => false, 'message' => $message];
+        }
+
+        return [
+            'success' => true,
+            'message' => $message,
+            'tracking_number' => $tracking_number,
+            'label_url' => $label,
+            'tracking_url' => $tracking_url_provider
+        ];
+    }
 
 }

@@ -48,14 +48,15 @@ $socialImages = getImageSizes($data->social_image);
                                     <div class="form-group row">
                                         <legend class="col-sm-3 col-form-label pt-0">Shipping Address</legend>
                                         <div class="col-sm-9">
-                                            <!--
+
+                                            @foreach( $data->shipping_addresses as $key => $address )
                                             <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="billing_address_option" id="gridRadios1" value="option1" checked>
-                                                <label class="form-check-label" for="gridRadios1">
-                                                First radio
+                                                <input class="form-check-input shipping-address-option" type="radio" name="shipping_address_option" id="gridRadios{{ $key }}" value="{{ $address->id }}">
+                                                <label class="form-check-label" for="gridRadios{{ $key }}">
+                                                {{ $address->address }} {{ $address->address2 }} {{ $address->city }} {{ $address->state }} {{ $address->zip }} {{ $address->country }}
                                                 </label>
                                             </div>
-                                            -->
+                                            @endforeach
 
                                             <div class="form-check">
                                                 <hr>
@@ -70,19 +71,26 @@ $socialImages = getImageSizes($data->social_image);
                                     <input class="form-check-input shipping-address-option" type="radio" name="shipping_address_option" id="new-shipping-address" value="new_shipping_address" checked style="display: none">
                                     @endif
 
-                                    <div class="new-shipping-address" {{ $shippingAddresses? 'style="display: none"' : '' }}>
+                                    <div class="new-shipping-address" @if( $shippingAddresses ) style="display: none" @endif>
 
                                         <div class="form-group row">
                                             <label for="shipping-name" class="col-sm-3 col-form-label">Name</label>
                                             <div class="col-sm-9">
-                                                <input type="text" class="form-control" id="shipping-name" name="shipping_name" data-required data-required-message="Please enter your shipping name." required value="{{ old('shipping_name') }}">
+                                                <input type="text" class="form-control" id="shipping-name" name="shipping_name" data-required data-required-message="Please enter your shipping name." value="{{ old('shipping_name') }}">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group row">
+                                            <label for="shipping-name" class="col-sm-3 col-form-label">Company Name</label>
+                                            <div class="col-sm-9">
+                                                <input type="text" class="form-control" id="shipping-company_name" name="shipping_company_name" value="{{ old('shipping_company_name') }}">
                                             </div>
                                         </div>
 
                                         <div class="form-group row">
                                             <label for="shipping-address" class="col-sm-3 col-form-label">Address</label>
                                             <div class="col-sm-9">
-                                                <input type="text" class="form-control shipping-address-field shipping-address" id="shipping-address" name="shipping_address" value="{{ old('shipping_address') }}" data-required data-required-message="Please enter your shipping address." required>
+                                                <input type="text" class="form-control shipping-address-field shipping-address" id="shipping-address" name="shipping_address" value="{{ old('shipping_address') }}" data-required data-required-message="Please enter your shipping address.">
                                             </div>
                                         </div>
 
@@ -96,14 +104,14 @@ $socialImages = getImageSizes($data->social_image);
                                         <div class="form-group row">
                                             <label for="shipping-city" class="col-sm-3 col-form-label">City</label>
                                             <div class="col-sm-9">
-                                                <input type="text" class="form-control shipping-address-field" id="shipping-city" name="shipping_city" value="{{ old('shipping_city') }}" data-required data-required-message="Please enter your shipping city." required>
+                                                <input type="text" class="form-control shipping-address-field" id="shipping-city" name="shipping_city" value="{{ old('shipping_city') }}" data-required data-required-message="Please enter your shipping city.">
                                             </div>
                                         </div>
 
                                         <div class="form-group row">
                                             <label for="shipping-state" class="col-sm-3 col-form-label">State / Providence</label>
                                             <div class="col-sm-9">
-                                                <select class="form-control shipping-address-field" id="shipping-state" name="shipping_state" data-required data-required-message="Please enter your shipping state." required>
+                                                <select class="form-control shipping-address-field" id="shipping-state" name="shipping_state" data-required data-required-message="Please enter your shipping state.">
                                                     <option value="">Choose state / providence ....</option>
                                                 @php $states = getStates();  @endphp
                                                 @foreach( $states as $key => $value )
@@ -116,30 +124,18 @@ $socialImages = getImageSizes($data->social_image);
                                         <div class="form-group row">
                                             <label for="shipping-zip-code" class="col-sm-3 col-form-label">Zip / Postal Code</label>
                                             <div class="col-sm-9">
-                                                <input type="text" class="form-control shipping-address-field" id="shipping-zip-code" name="shipping_zipcode" value="{{ old('shipping_zipcode') }}" data-required data-required-message="Please enter your shipping zip code." required>
+                                                <input type="text" class="form-control shipping-address-field" id="shipping-zip-code" name="shipping_zipcode" value="{{ old('shipping_zipcode') }}" data-required data-required-message="Please enter your shipping zip code.">
                                             </div>
                                         </div>
 
                                         <div class="form-group row">
                                             <label for="shipping-country" class="col-sm-3 col-form-label">Country</label>
                                             <div class="col-sm-9">
-                                                <select class="form-control shipping-address-field" id="shipping-country" name="shipping_country" data-required data-required-message="Please enter your shipping country." required>
+                                                <select class="form-control shipping-address-field" id="shipping-country" name="shipping_country" data-required data-required-message="Please enter your shipping country.">
                                                     <option value="">Choose country ....</option>
                                                     <option value="CA">Canada</option>
                                                     <option value="US">United States</option>
                                                 </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group row">
-                                            <legend class="col-sm-3 col-form-label pt-0">Save Shipping Address?</legend>
-                                            <div class="col-sm-9">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="checkbox" name="save_shipping" id="save-shipping-address" value="1">
-                                                    <label class="form-check-label" for="save-shipping-address">
-                                                    Yes
-                                                    </label>
-                                                </div>
                                             </div>
                                         </div>
 

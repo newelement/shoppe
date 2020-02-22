@@ -27,6 +27,7 @@ class CreateProductsTable extends Migration
 
 			$table->decimal('price', 10, 2)->nullable();
 			$table->decimal('sale_price', 10 , 2)->nullable();
+            $table->boolean('is_taxable')->default(1);
             $table->boolean('contact_price')->default(0);
             $table->boolean('contact_avail')->default(0);
 

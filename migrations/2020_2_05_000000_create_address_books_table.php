@@ -18,6 +18,7 @@ class CreateAddressBooksTable extends Migration
             $table->bigInteger('user_id');
 			$table->string('address_type', 100);
 			$table->string('name', 300)->nullable();
+            $table->string('company_name', 300)->nullable();
             $table->string('address', 400)->nullable();
             $table->string('address2', 400)->nullable();
             $table->string('city', 300)->nullable();

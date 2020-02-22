@@ -15,6 +15,7 @@ trait CartData
         $items = Cart::where('user_id', $cartUser)->orWhere('temp_user_id', $cartUser)->get();
 
         $sub_total = 0.00;
+        $taxable_total = 0.00;
         $i = 0;
         foreach($items as $item){
 
@@ -42,6 +43,7 @@ trait CartData
             $items[$i]->price = (float) $price;
             $items[$i]->line_total = (float) $price * (int) $item->qty;
             $items[$i]->product = $product;
+            $items[$i]->taxable_total = $product->is_taxable? $items[$i]->line_total : 0.00;
             $items[$i]->variation = $variation;
             $items[$i]->variationFormatted = false;
             if( $items[$i]->variation_set ){
@@ -56,12 +58,14 @@ trait CartData
             }
             $items[$i]->image =  $variation && $variation->image ? $variation->image : $product->featuredImage->file_path;
             $sub_total += (float) $items[$i]->line_total;
+            $taxable_total += (float) $items[$i]->taxable_total;
 
             $i++;
         }
 
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;
+        $cartItems['taxable_total'] = $taxable_total;
 
         return $cartItems;
     }
@@ -95,7 +99,11 @@ trait CartData
     public function deleteUserCart()
     {
         $cartUser = $this->getCartUser();
-        Cart::where('user_id', $cartUser)->orWhere('temp_user_id', $cartUser)->delete();
+        if( Auth::check() ){
+            Cart::where('user_id', $cartUser)->delete();
+        } else {
+            Cart::where('temp_user_id', $cartUser)->delete();
+        }
     }
 
 }
