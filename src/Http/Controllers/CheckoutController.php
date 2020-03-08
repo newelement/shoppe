@@ -10,23 +10,33 @@ use Newelement\Shoppe\Models\Customer;
 use Newelement\Shoppe\Models\Order;
 use Newelement\Shoppe\Models\OrderLine;
 use Newelement\Shoppe\Traits\Transactions;
+use Newelement\Shoppe\Traits\ShippingService;
+use Newelement\Shoppe\Traits\TaxService;
 use Illuminate\Support\Facades\Hash;
 use Auth;
 
 class CheckoutController extends Controller
 {
-    use CartData, Transactions;
+    use CartData, Transactions, ShippingService, TaxService;
 
     public function __construct()
     {}
 
     public function index(Request $request)
     {
-        $cartItems = $this->getCartItems();
+        $cart = $this->getCartItems();
         $data = Page::where('slug', 'checkout')->first();
         $data->data_type = 'page';
-        $data->items = $cartItems['items'];
-        $data->sub_total = $cartItems['sub_total'];
+        $data->items = $cart['items'];
+        $data->sub_total = $cart['sub_total'];
+
+        $paymentConnector = app('Payment');
+        $shippingConnector = app('Shipping');
+        $taxesConnector = app('Taxes');
+
+        $data->payment_connector = $paymentConnector->connector_name;
+        $data->tax_connector = $taxesConnector->connector_name;
+        $data->shipping_connector = $shippingConnector->connector_name;
 
         $data->shipping_addresses = AddressBook::where(
                                     [
@@ -51,31 +61,49 @@ class CheckoutController extends Controller
     */
     public function processCheckout(Request $request)
     {
-        //Validate initial data
-        $validateArr = []; /*[
-            'title' => 'required|unique:posts|max:255',
-            'body' => 'required',
-            ]*/;
-        $validatedData = $request->validate(
-            $validateArr
-        );
 
         $paymentConnector = app('Payment');
         $shippingConnector = app('Shipping');
         $taxesConnector = app('Taxes');
+        $cart = $this->getCartItems();
+        $items = $cart['items'];
+        $eligibleShipping = $cart['eligible_shipping'];
+        $checkout = [];
+
+        //Validate initial data
+        $validateArr = [
+            'email' => 'required|email',
+        ];
+
+        if( $paymentConnector->connector_name === 'shoppe_stripe' ){
+            $validateArr['token'] = 'required';
+        }
+
+        if( $eligibleShipping ){
+            $validateArr['shipping_rate'] = 'required';
+            if( !$request->shipping_address_option ){
+                $validateArr['shipping_name'] = 'required';
+                $validateArr['shipping_address'] = 'required';
+                $validateArr['shipping_city'] = 'required';
+                $validateArr['shipping_state'] = 'required';
+                $validateArr['shipping_zipcode'] = 'required';
+                $validateArr['shipping_country'] = 'required';
+            }
+        }
+
+        $validatedData = $request->validate(
+            $validateArr
+        );
+
 
         $email = $request->email;
         $billing_name = $request->cc_name;
-        $cart = $this->getCartItems();
         $savedShipping = $request->shipping_address_option && $request->shipping_address_option !== 'new_shipping_address'? $request->shipping_address_option : false;
-        $shippingAddress = [];
-        $items = $cart['items'];
-        $eligibleShipping = true;
         $subTotal = $cart['sub_total'];
         $taxableTotal = $cart['taxable_total'];
         $refId = sha1( uniqid().microtime().$subTotal.$email.env('APP_KEY') );
         $user = Customer::createOrGet( $billing_name, $email );
-        $checkout = [];
+
 
         // Get request params
         $token = $request->token;
@@ -95,76 +123,49 @@ class CheckoutController extends Controller
         $checkout['shipping_service_id'] = $request->shipping_rate? $request->shipping_rate : false ;
 
 
+
         /*
         * Shipping
         *
         *
         */
-        if( $savedShipping ){
-            $savedAddress = AddressBook::find($savedShipping);
-            $shippingAddress = [
-                'name' => $savedAddress->name,
-                'company_name' => $request->company_name,
-                'street1' => $savedAddress->address,
-                'street2' => $savedAddress->address2,
-                'city' => $savedAddress->city,
-                'state' => $savedAddress->state,
-                'zip' => $savedAddress->zipcode,
-                'country' => $savedAddress->country,
-                'email' => $email
-            ];
-        } else {
-            $shippingAddress = [
-                'name' => $request->shipping_name,
-                'company_name' => $request->shipping_company_name,
-                'street1' => $request->shipping_address,
-                'street2' => $request->shipping_address2,
-                'city' => $request->shipping_city,
-                'state' => $request->shipping_state,
-                'zip' => $request->shipping_zipcode,
-                'country' => $request->shipping_country,
-                'email' => $email
-            ];
-        }
+        $this->savedShipping = $savedShipping;
+        $this->eligibleShipping = $eligibleShipping;
+        $this->email = $email;
+        $this->user = $user;
+
+        $shippingAddress = $this->processShippingAddress($request);
+        // SAVE CUSTOMER'S SHIPPING ADDRESS
+        $this->saveShippingAddress();
 
         $checkout['shipping_address'] = $shippingAddress;
+        $flatRate = $cart['flat_rate_total'];
+        $shippingAmount = $flatRate;
 
-        $rate = $shippingConnector->getShippingRates( $checkout );
-        $checkout['shipping_connector'] = $shippingConnector->connector_name;
+        if( $cart['estimated_weight'] ){
+            $estimatedRate = $shippingConnector->getShippingRates( $checkout );
+            $checkout['shipping_connector'] = $shippingConnector->connector_name;
 
-        if( !$rate['success'] ){
-            if( $request->ajax() ){
-                return response()->json(['success' => false, 'message' => $rate['message']], 500);
-            } else {
-                return back()->with('error', $rate['message']);
+            if( !$estimatedRate['success'] ){
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' => $estimatedRate['message']], 500);
+                } else {
+                    return back()->with('error', $estimatedRate['message']);
+                }
             }
+
+            $checkout['shipping_amount'] = $estimatedRate['rates']['amount'];
+            $checkout['shipping_carrier'] = $estimatedRate['rates']['carrier'];
+            $checkout['shipping_service'] = $estimatedRate['rates']['service'];
+            $checkout['shipping_service_id'] = $estimatedRate['rates']['service_id'];
+            $checkout['shipping_est_days'] = $estimatedRate['rates']['estimated_days'];
+            $checkout['shipping_object_id'] = isset($estimatedRate['rates']['object_id'])? $estimatedRate['rates']['object_id'] : null ;
+
+            $shippingAmount = (float) $checkout['shipping_amount'] + (float) $flatRate;
+
         }
 
-        // SAVE CUSTOMER'S SHIPPING ADDRESS
-        if( $eligibleShipping && !$savedShipping ){
-            $address = AddressBook::checkExistingAddress($user, $shippingAddress, 'SHIPPING');
-            if( !$address ){
-                $address = new AddressBook;
-                $address->user_id = $user->id;
-                $address->address_type = 'SHIPPING';
-                $address->name = $shippingAddress['name'];
-                $address->company_name = $shippingAddress['company_name'];
-                $address->address = $shippingAddress['street1'];
-                $address->address2 = $shippingAddress['street2'];
-                $address->city = $shippingAddress['city'];
-                $address->state = $shippingAddress['state'];
-                $address->zipcode = $shippingAddress['zip'];
-                $address->country = $shippingAddress['country'];
-                $address->save();
-            }
-        }
-
-        $checkout['shipping_amount'] = $rate['rates']['amount'];
-        $checkout['shipping_carrier'] = $rate['rates']['carrier'];
-        $checkout['shipping_service'] = $rate['rates']['service'];
-        $checkout['shipping_service_id'] = $rate['rates']['service_id'];
-        $checkout['shipping_est_days'] = $rate['rates']['estimated_days'];
-        $checkout['shipping_object_id'] = isset($rate['rates']['object_id'])? $rate['rates']['object_id'] : null ;
+        return response()->json(['success' => false, 'message' => ''], 500);
 
 
         /*
@@ -187,12 +188,13 @@ class CheckoutController extends Controller
         $checkout['tax_rate'] = $taxes['tax_rate'];
 
 
+
         /*
         * Totals and Charge
         *
         *
         */
-        $amount = (float) $subTotal + (float) $checkout['shipping_amount'] + (float) $checkout['tax_amount'];
+        $amount = (float) $subTotal + $shippingAmount + (float) $checkout['tax_amount'];
         $checkout['amount'] = $amount;
 
         // THE CHARGE
@@ -212,6 +214,7 @@ class CheckoutController extends Controller
         $checkout['transaction_id'] = $charge['transaction_id'];
 
 
+
         /*
         * Create customer
         *
@@ -221,6 +224,7 @@ class CheckoutController extends Controller
             $checkout['customer_id'] = $charge['customer_id'];
             $savedCard = Customer::saveCard( $checkout, $user );
         }
+
 
 
         /*
@@ -307,7 +311,7 @@ class CheckoutController extends Controller
                 'amount' => $checkout['amount'],
                 'order_id' => $checkout['order_id'],
                 'transaction_id' => $checkout['transaction_id'],
-                'notes' => 'Initial order complete.',
+                'notes' => 'Order created.',
                 'user_id' => $user->id
         ];
         $this->createTransaction( $transArr );
@@ -315,6 +319,7 @@ class CheckoutController extends Controller
         // Send out order confirmation emails
         // Mail::send();
 
+        $checkout['order_complete_route'] = config('shoppe.slugs.order_complete', 'order-complete');
 
         // Empty the user's cart
         $this->deleteUserCart();
@@ -336,6 +341,9 @@ class CheckoutController extends Controller
     public function checkoutSuccess($ref_id)
     {
         $order = Order::where('ref_id', $ref_id)->first();
+        if( !$order ){
+            abort(404);
+        }
         return view('shoppe::checkout-complete', ['data' => $order]);
     }
 
@@ -401,46 +409,71 @@ class CheckoutController extends Controller
     */
     public function getShipping(Request $request)
     {
+        $cart = $this->getCartItems();
         $code = 200;
         $checkout = [];
+        $shoppeSettings = getShoppeSettings();
+        $rates = [ 'rates' => [] ];
 
-        $shipping_address_id = $request->shipping_address_id;
-        if( !$shipping_address_id ){
-            $address = [
-                'name' => $request->name,
-                'company_name' => $request->company_name,
-                'street1' => $request->address,
-                'street2' => $request->address2,
-                'city' => $request->city,
-                'state' => $request->state,
-                'zip' => $request->zip,
-                'country' => $request->country,
-                'email' => ''
+        if( $cart['estimated_weight'] > 0 ){
+
+            $shipping_address_id = $request->shipping_address_id;
+            if( !$shipping_address_id ){
+                $address = [
+                    'name' => $request->name,
+                    'company_name' => $request->company_name,
+                    'street1' => $request->address,
+                    'street2' => $request->address2,
+                    'city' => $request->city,
+                    'state' => $request->state,
+                    'zip' => $request->zip,
+                    'country' => $request->country,
+                    'email' => ''
+                ];
+            }
+
+            if( $shipping_address_id ){
+                $shippingAddress = AddressBook::find($shipping_address_id);
+                $address = [
+                    'name' => $shippingAddress->name,
+                    'company_name' => $request->company_name,
+                    'street1' => $shippingAddress->address,
+                    'street2' => $shippingAddress->address2,
+                    'city' => $shippingAddress->city,
+                    'state' => $shippingAddress->state,
+                    'zip' => $shippingAddress->zipcode,
+                    'country' => $shippingAddress->country,
+                    'email' => ''
+                ];
+            }
+
+            $checkout['shipping_service_id'] = false;
+            $checkout['shipping_address'] = $address;
+            $shippingConnector = app('Shipping');
+            $rates = $shippingConnector->getShippingRates( $checkout );
+
+            if( !$rates['success'] ){
+                $code = 500;
+            }
+
+        }
+
+        if( $shoppeSettings['shipping_type'] === 'flat' ){
+
+            $flat = [
+                'amount' => formatCurrency( $cart['flat_rate_total'] + (float) $shoppeSettings['flat_rate']),
+                'carrier' => 'UPS',
+                'estimated_days' => '2-3',
+                'object_id' => null,
+                'service' => 'Ground',
+                'service_id' => 'ground',
+                'rate_type' => 'flat'
             ];
+
+            array_unshift( $rates['rates'], $flat );
+
         }
 
-        if( $shipping_address_id ){
-            $shippingAddress = AddressBook::find($shipping_address_id);
-            $address = [
-                'name' => $shippingAddress->name,
-                'company_name' => $request->company_name,
-                'street1' => $shippingAddress->address,
-                'street2' => $shippingAddress->address2,
-                'city' => $shippingAddress->city,
-                'state' => $shippingAddress->state,
-                'zip' => $shippingAddress->zipcode,
-                'country' => $shippingAddress->country,
-                'email' => ''
-            ];
-        }
-
-        $checkout['shipping_service_id'] = false;
-        $checkout['shipping_address'] = $address;
-        $shippingConnector = app('Shipping');
-        $rates = $shippingConnector->getShippingRates( $checkout );
-        if( !$rates['success'] ){
-            $code = 500;
-        }
         return response()->json(['rates' => $rates], $code);
     }
 }

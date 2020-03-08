@@ -11,6 +11,7 @@ let $q = document.querySelector.bind(document),
     modalMessage = '',
     thisVariation = {},
     checkoutErrors = [],
+    currentStep = 1,
     shippingAddressOption = false,
     shippingAddressId = false,
     subTotal = 0.00,
@@ -19,8 +20,11 @@ let $q = document.querySelector.bind(document),
     total = 0.00;
 
 let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
+    $checkoutForm = document.getElementById('checkout-form'),
+    $checkoutErrorElement = document.getElementById('checkout-errors'),
     $shippingAddressFields = $$q('.shipping-address-field'),
     $shippingTaxesLoader = $q('.shipping-taxes-loader'),
+    $shippingAddressForRates = $q('.enter-shipping-address-for-rates'),
     $checkoutStepsWrap = $q('.checkout-steps-wrap'),
     $shippingRatesList = $q('.shipping-rates-list'),
     $submitOrderBtn = $q('.submit-order-btn'),
@@ -33,7 +37,9 @@ let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $checkoutSteps = $$q('.checkout-step'),
     $checkoutShippingReview = $q('#checkout-shipping-review'),
     $checkoutBillingReview = $q('#checkout-billing-review'),
-    $checkoutMessages = $q('.checkout-messages');
+    $checkoutMessages = $q('.checkout-messages'),
+    $customerAddressEditToggle = $$q('.customer-address-edit-toggle'),
+    $editCustomerAddressFields = $$q('.edit-customer-address-fields');
 
 let alertTypes = [
     'alert-primary',
@@ -141,8 +147,9 @@ let getTaxes = async (shipping) => {
         return response.data.taxes;
     })
     .catch(e => {
-        console.log('taxes error', e);
         $shippingTaxesLoader.classList.remove('loading');
+        console.log('taxes error', e);
+        logCheckoutError('taxes', e.message);
     });
 };
 
@@ -161,9 +168,10 @@ function validateShippingFields(){
         $shippingTaxesLoader.classList.add('loading');
     }
 
-    if( shippingAddressOption && shippingAddressOption === 'new' ){
+    if( shippingAddressOption && shippingAddressOption === 'new'){
         $shippingAddressFields.forEach( function(el){
             if( !el.value.length  ){
+                console.log('NO SHIPPING FIELD VALUE');
                 hasShippingAddress = false;
             }
         });
@@ -173,21 +181,23 @@ function validateShippingFields(){
         hasShippingAddress = false;
     }
 
-    if( hasShippingAddress ){
-
+    if( hasShippingAddress  && currentStep === 1 ){
+        $checkoutErrorElement.innerHTML = '';
         getShipping().then( (rates) => {
 
             shipping = rates.rates[0].amount;
+
+            $q('.shipping-service-summary').innerHTML = rates.rates[0].carrier+' '+rates.rates[0].service;
 
             $shippingRatesList.innerHTML = '';
             let rateItems = '';
             rates.rates.forEach( (v, i) => {
                 let checked = i === 0? 'checked="checked"' : '';
                 rateItems += '<li class="rate-item">';
-                    rateItems += '<label>';
-                    rateItems += '<input type="radio" name="shipping_rate" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
-                    rateItems += ' <span class="rate-service">'+v.carrier +' '+v.service+'</span> $<span class="rate-amount">'+v.amount+'</span>';
-                    rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div>';
+                    rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
+                    rateItems += '<label for="rate-item-'+i+'">';
+                        rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
+                        rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
                     rateItems += '</label>';
                 rateItems += '</li>';
             });
@@ -204,6 +214,10 @@ function validateShippingFields(){
                                 $shippingTaxesLoader.classList.add('loading');
                             }
                             shipping = e.target.getAttribute('data-rate');
+                            let carrier = e.target.getAttribute('data-rate-carrier');
+                            let service = e.target.getAttribute('data-rate-service');
+
+                            $q('.shipping-service-summary').innerHTML = carrier+' '+service;
 
                             getTaxes(shipping).then( (estTaxes) => {
                                 taxes = estTaxes;
@@ -237,7 +251,7 @@ function validateShippingFields(){
 
 function showCheckoutErrors(){
     let messages = '';
-    $checkoutMessages.style.display = 'none';
+    $checkoutMessages.innerHTML = '';
 
     checkoutErrors.forEach( (m) => {
         messages += m+'<br>';
@@ -245,7 +259,6 @@ function showCheckoutErrors(){
 
     if( checkoutErrors.length ){
         $checkoutMessages.innerHTML = messages;
-        $checkoutMessages.style.display = 'block';
     }
 }
 
@@ -280,40 +293,31 @@ function validateShipping(){
     return checkoutErrors.length ? false : true;
 }
 
-function validatePayment(){
-    checkoutErrors = [];
-
-    let reqFields = $$q('#billing-address-fields [data-required]');
-
-    reqFields.forEach( (el) => {
+function validateBilling(){
+    let messages = [];
+    let html = '';
+    let $requireds = $$q('.billing-address [data-required]');
+    $requireds.forEach( (el) => {
         el.classList.remove('border-danger');
     });
+    if( $requireds.length ){
+        $requireds.forEach( (el) => {
+            if( el.value === '' ){
+                el.classList.add('border-danger');
+                let inputMessage = el.getAttribute('data-required-message');
+                    messages.push(inputMessage);
+                }
+        });
+    }
 
-    reqFields.forEach( (el) => {
-        let message = el.getAttribute('data-required-message');
-        if( el.value === '' ){
-            el.classList.add('border-danger');
-            checkoutErrors.push(message);
-        }
-    });
+    if( messages.length ){
+        messages.forEach( (mess) => {
+            html += mess+'<br>';
+        });
+        $checkoutMessages.innerHTML = $checkoutMessages.innerHTML + html;
+    }
 
-    /*
-    $q('#billing-address').value;
-    $q('#billing-address2').value
-    $q('#billing-city').value
-    $q('#billing-state').value
-    $q('#billing-zip-code').value
-    $q('#billing-country').value
-    */
-    showCheckoutErrors();
-
-    return checkoutErrors.length ? false : true;
-}
-
-function validateReview(){
-    checkoutErrors = [];
-
-    showCheckoutErrors();
+    return messages.length ? true : false;
 }
 
 function setCheckoutStep(step){
@@ -328,12 +332,11 @@ function setCheckoutStep(step){
             $checkoutSteps[1].classList.remove('current');
             $checkoutSteps[1].classList.remove('done');
             $checkoutSteps[0].classList.remove('done');
-            $checkoutSteps[2].classList.remove('current');
-            $checkoutSteps[2].classList.remove('done');
             $checkoutFormSections[0].classList.add('current');
-            $q('#checkout-step-3-btn').classList.add('visible-hide');
             $q('#checkout-step-2-btn').classList.remove('visible-hide');
             $q('#checkout-submit-btn').classList.add('visible-hide');
+            currentStep = 1;
+            $checkoutForm.setAttribute('autocomplete', 'on');
 
         break;
         case 2:
@@ -341,25 +344,11 @@ function setCheckoutStep(step){
 
             $checkoutSteps[0].classList.add('done');
             $checkoutSteps[1].classList.add('current');
-            $checkoutSteps[2].classList.remove('current');
-            $checkoutSteps[1].classList.remove('done');
-            $checkoutSteps[2].classList.remove('done');
             $checkoutFormSections[1].classList.add('current');
             $q('#checkout-step-2-btn').classList.add('visible-hide');
-            $q('#checkout-step-3-btn').classList.remove('visible-hide');
-            $q('#checkout-submit-btn').classList.add('visible-hide');
-
-        break;
-        case 3:
-        // REVIEW
-
-            $checkoutSteps[0].classList.add('done');
-            $checkoutSteps[1].classList.add('done');
-            $checkoutSteps[2].classList.add('current');
-            $checkoutFormSections[2].classList.add('current');
-            $q('#checkout-step-3-btn').classList.add('visible-hide');
-            $q('#checkout-step-2-btn').classList.add('visible-hide');
             $q('#checkout-submit-btn').classList.remove('visible-hide');
+            currentStep = 2;
+            $checkoutForm.setAttribute('autocomplete', 'false');
 
         break;
     }
@@ -379,27 +368,14 @@ function logCheckoutError(type, error){
     showCheckoutErrors();
 }
 
-function buildCheckoutReview(){
+function showPlaceOrderLoader(){
+    $q('#checkout-submit-btn').setAttribute('disabled', '');
+    $q('#checkout-submit-btn .spinner-border-sm').classList.remove('hide');
+}
 
-    let shippingAddress = $q('#shipping-address').value+'<br>';
-        shippingAddress += $q('#shipping-address2').value !== ''? $q('#shipping-address2').value+'<br>' : '';
-        shippingAddress += $q('#shipping-city').value+' '+$q('#shipping-state').value+', '+$q('#shipping-zip-code').value+'<br>';
-        shippingAddress += $q('#shipping-country').value;
-
-    /*
-    let billingAddress = $q('#billing-address').value+'<br>';
-        billingAddress += $q('#billing-address2').value !== ''? $q('#billing-address2').value+'<br>' : '';
-        billingAddress += $q('#billing-city').value+' '+$q('#billing-state').value+', '+$q('#billing-zip-code').value+'<br>';
-        billingAddress += $q('#billing-country').value;
-*/
-    if( $checkoutShippingReview ){
-        $checkoutShippingReview.innerHTML = shippingAddress;
-    }
-    /*
-    if( $checkoutBillingReview ){
-        $checkoutBillingReview.innerHTML = billingAddress;
-    }*/
-
+function resetPlaceOrderLoader(){
+    $q('#checkout-submit-btn').removeAttribute('disabled');
+    $q('#checkout-submit-btn .spinner-border-sm').classList.add('hide');
 }
 
 
@@ -426,34 +402,50 @@ window.addEventListener('DOMContentLoaded', (e) => {
     *
     *
     */
-    if( typeof Stripe !== 'undefined' ){
+    if( typeof Stripe !== 'undefined' && app.payment_connector === 'shoppe_stripe' ){
         let stripe = Stripe(app.stripe_token);
         let elements = stripe.elements();
         let card = elements.create('card');
         card.mount('#card-element');
 
         function stripeTokenHandler(token) {
-            // Insert the token ID into the form so it gets submitted to the server
-            let form = document.getElementById('checkout-form');
             let hiddenInput = document.createElement('input');
             hiddenInput.setAttribute('type', 'hidden');
             hiddenInput.setAttribute('name', 'token');
             hiddenInput.setAttribute('value', token.id);
-            form.appendChild(hiddenInput);
-            form.submit();
+            $checkoutForm.appendChild(hiddenInput);
+
+            // AJAX place order
+            let formData = new FormData($checkoutForm);
+            HTTP.post('/checkout', formData)
+            .then( response => {
+                //window.location = '/'+response.data.order_complete_route+'/'+response.data.ref_id;
+            })
+            .catch(e => {
+                resetPlaceOrderLoader();
+                console.log(e.message);
+                $checkoutErrorElement.innerHTML = e.message;
+            });
         }
 
-        let form = document.getElementById('checkout-form');
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-            stripe.createToken(card).then(function(result) {
-                if (result.error) {
-                    let errorElement = document.getElementById('card-errors');
-                    errorElement.textContent = result.error.message;
-                } else {
-                    stripeTokenHandler(result.token);
-                }
-            });
+        $checkoutForm.addEventListener('submit', function(e) {
+            showPlaceOrderLoader();
+            e.preventDefault();
+            $checkoutErrorElement.innerHTML = '';
+            let error = validateBilling();
+            console.log(error);
+            if( !error ){
+                stripe.createToken(card).then(function(result) {
+                    if (result.error) {
+                        $checkoutErrorElement.innerHTML = $checkoutErrorElement.innerHTML + result.error.message;
+                        resetPlaceOrderLoader();
+                    } else {
+                        stripeTokenHandler(result.token);
+                    }
+                });
+            } else {
+                resetPlaceOrderLoader();
+            }
         });
     }
 
@@ -617,43 +609,48 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     shippingAddressId = el.target.value;
                     shippingAddressOption = 'saved';
                     validateShippingFields();
+
+                    let shippingName = el.target.getAttribute('data-name');
+                    let shippingCompanyName = el.target.getAttribute('data-company-name');
+                    let shippingAddress = el.target.getAttribute('data-address');
+                    let shippingAddress2 = el.target.getAttribute('data-address2');
+                    let shippingCity = el.target.getAttribute('data-city');
+                    let shippingState = el.target.getAttribute('data-state');
+                    let shippingZip = el.target.getAttribute('data-zipcode');
+                    let shippingCountry = el.target.getAttribute('data-country');
+
+                    let shippingAddressHtml = '<h4>Shipping to</h4>';
+                    shippingAddressHtml += shippingName+'<br>';
+                    if( shippingCompanyName.length > 1 ){
+                        shippingAddressHtml += shippingCompanyName+'<br>';
+                    }
+                    shippingAddressHtml += shippingAddress+'<br>';
+                    if( shippingAddress2.length > 1 ){
+                        shippingAddressHtml += shippingAddress2+'<br>';
+                    }
+                    shippingAddressHtml += shippingCity+', ';
+                    shippingAddressHtml += shippingState+' ';
+                    shippingAddressHtml += shippingZip+'<br>';
+                    shippingAddressHtml += shippingCountry;
+
+                    $q('.shipping-address-summary').innerHTML = shippingAddressHtml;
+                    $q('.shipping-address-summary').classList.remove('hide-me');
+
+                    if( $shippingRatesList ){
+                        $shippingRatesList.innerHTML = '<li><svg focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M460.115 373.846l-6.941-4.008c-5.546-3.202-7.564-10.177-4.661-15.886 32.971-64.838 31.167-142.731-5.415-205.954-36.504-63.356-103.118-103.876-175.8-107.701C260.952 39.963 256 34.676 256 28.321v-8.012c0-6.904 5.808-12.337 12.703-11.982 83.552 4.306 160.157 50.861 202.106 123.67 42.069 72.703 44.083 162.322 6.034 236.838-3.14 6.149-10.75 8.462-16.728 5.011z"></path></svg>  <span class="getting-rates">Getting rates ...</span></li>';
+                    }
+
                 }
             });
         });
     }
 
+    /*
     if( $submitOrderBtn ){
         $submitOrderBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            let messages = [];
-            let html = '';
-            let $checkOutMessages = $q('.checkout-messages');
-            $checkOutMessages.style.display = 'none';
-            $checkOutMessages.innerHTML = '';
-            let $requireds = $$q('[data-required]');
-            if( $requireds.length ){
-                $requireds.forEach( (el) => {
-                    if( el.value === '' ){
-                        let inputMessage = el.getAttribute('data-required-message');
-                        messages.push(inputMessage);
-                    }
-                });
-            }
-
-            if( messages.length ){
-                messages.forEach( (mess) => {
-                    html += '<li>'+mess+'</li>';
-                });
-                $checkOutMessages.innerHTML = html;
-                $checkOutMessages.style.display = 'block';
-            }
-
-            if( !messages.length ){
-
-            }
-
         });
-    }
+    }*/
 
 
     /*
@@ -681,17 +678,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                             setCheckoutStep(step);
                         }
                     break;
-                    case 3:
-                        let vPayment = validatePayment();
-                        showHideStepLoading();
-                        if( vPayment ){
-                            $checkoutFormSections.forEach( (el) => {
-                                el.classList.remove('current');
-                            });
-                            setCheckoutStep(step);
-                            buildCheckoutReview();
-                        }
-                    break;
                 }
             });
         });
@@ -714,6 +700,25 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
             });
         });
+    }
+
+    if( $customerAddressEditToggle.length ){
+        $customerAddressEditToggle.forEach( (el) => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                let href = e.target.hash.replace('#', '');
+                let hidden = document.getElementById(href).classList.contains('hide');
+                $editCustomerAddressFields.forEach( (el) => {
+                    el.classList.add('hide');
+                });
+                if( hidden ){
+                    document.getElementById(href).classList.remove('hide');
+                } else {
+                    document.getElementById(href).classList.add('hide');
+                }
+
+            });
+        })
     }
 
 

@@ -27,4 +27,9 @@ class OrderLine extends Model
         return $this->statuses[ $this->status ];
     }
 
+    public function credits()
+    {
+        return $this->hasMany('Newelement\Shoppe\Models\Transaction')->where('transaction_type', 'credit');
+    }
+
 }

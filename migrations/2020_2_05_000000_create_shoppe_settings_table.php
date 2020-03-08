@@ -15,8 +15,10 @@ class CreateShoppeSettingsTable extends Migration
     {
         Schema::create('shoppe_settings', function (Blueprint $table) {
             $table->bigIncrements('id');
+            $table->bigInteger('group_id');
+            $table->string('name', 120);
             $table->string('group', 100);
-            $table->string('name', 100);
+            $table->string('display_name', 100);
             $table->string('type', 20);
             $table->boolean('bool_value')->nullable();
             $table->string('string_value', 300)->nullable();
@@ -28,15 +30,14 @@ class CreateShoppeSettingsTable extends Migration
             $table->json('options')->nullable();
             $table->text('notes')->nullable();
             $table->integer('ordinal')->default(0);
-            $table->integer('group_ordinal')->default(0);
+            $table->integer('parent_id')->default(0);
 			$table->bigInteger('created_by')->nullable();
 			$table->bigInteger('updated_by')->nullable();
             $table->timestamps();
             $table->softDeletes();
 			$table->index('name');
-            $table->index('group');
+            $table->index('group_id');
             $table->index('ordinal');
-            $table->index('group_ordinal');
         });
     }
 

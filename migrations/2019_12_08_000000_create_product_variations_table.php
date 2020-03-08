@@ -20,11 +20,16 @@ class CreateProductVariationsTable extends Migration
             $table->json('attribute_values');
             $table->text('image')->nullable();
             $table->text('desc')->nullable();
+            $table->decimal('cost', 10, 2)->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->decimal('sale_price', 10 , 2)->nullable();
             $table->string('sku', 255)->nullable();
             $table->string('mfg_part_number', 255)->nullable();
             $table->integer('stock')->nullable();
+            $table->decimal('weight', 10, 2)->nullable();
+            $table->decimal('width', 10, 2)->nullable();
+            $table->decimal('height', 10, 2)->nullable();
+            $table->decimal('depth', 10, 2)->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

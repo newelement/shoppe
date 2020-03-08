@@ -11,6 +11,10 @@ class Order extends Model
 {
     use SoftDeletes, SearchableTrait, Sortable;
 
+    protected $dates = [
+        'created_date',
+    ];
+
     protected $searchable = [
         'columns' => [
             'status' => 7,
@@ -74,6 +78,16 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo('\Newelement\Neutrino\Models\User', 'user_id', 'id');
+    }
+
+    public function getCreditTotalAttribute()
+    {
+        return $this->hasMany('Newelement\Shoppe\Models\Transaction')->where('transaction_type', 'credit')->sum('amount');
+    }
+
+    public function orderNotes()
+    {
+        return $this->hasMany('Newelement\Shoppe\Models\OrderNote')->orderBy('created_at', 'desc');
     }
 
     public function disabled()

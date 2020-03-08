@@ -16,9 +16,12 @@ class CreateTransactionsTable extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->bigInteger('order_id');
-            $table->bigInteger('line_id')->nullable();
+            $table->bigInteger('order_line_id')->nullable();
 			$table->string('transaction_ref_id', 100);
             $table->decimal('amount', 9, 2);
+            $table->decimal('tax_amount', 9, 2)->nullable();
+            $table->decimal('shipping_amount', 9, 2)->nullable();
+            $table->integer('qty')->nullable();
             $table->string('transaction_type', 10);
             $table->text('notes')->nullable();
 			$table->bigInteger('created_by')->nullable();

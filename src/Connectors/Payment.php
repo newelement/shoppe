@@ -9,7 +9,7 @@ class Payment
 {
     use CartData, PaymentConnector;
 
-    public $connector_name = 'stripe';
+    public $connector_name = 'shoppe_stripe';
 
     function __construct()
     {

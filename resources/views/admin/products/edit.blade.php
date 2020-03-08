@@ -82,6 +82,13 @@
             </div>
 
             <div class="form-row">
+                <label class="label-col" for="cost">Cost</label>
+                <div class="input-col">
+                    <input type="number" id="cost" name="cost" value="{{ old('cost', $product->cost) }}" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
                 <label class="label-col" for="price">Price</label>
                 <div class="input-col">
                     <input type="number" id="price" name="price" value="{{ old('price', $product->price) }}" step="0.01">
@@ -92,6 +99,13 @@
                 <label class="label-col" for="sale-price">Sale Price</label>
                 <div class="input-col">
                     <input type="number" id="sale-price" name="sale_price" value="{{ old('sale_price', $product->sale_price) }}" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label-col" for="taxable">Taxable</label>
+                <div class="input-col has-checkbox">
+                    <label><input type="checkbox" id="taxable" name="is_taxable" value="1" {{ $product->is_taxable ? 'checked' : '' }}> Yes</label>
                 </div>
             </div>
 
@@ -160,18 +174,18 @@
 
                         <div class="form-row">
                             <label class="label-col" for="weight">Weight</label>
-                                    <div class="input-col input-col-group">
-                                        <div><input type="number" id="weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01"> lbs</div>
-                                    </div>
+                            <div class="input-col input-col-group">
+                                <div><input type="number" id="weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01"> lbs</div>
+                            </div>
                         </div>
 
                         <div class="form-row">
-                            <label class="label-col" for="weight">Dimensions</label>
-                                    <div class="input-col input-col-group">
-                                        <div><input type="number" id="width" name="width" value="{{ old('width', $product->width) }}" placeholder="Width" step="0.01"> in.</div>
-                                        <div><input type="number" id="height" name="height" value="{{ old('height', $product->height) }}" placeholder="Height" step="0.01"> in.</div>
-                                        <div><input type="number" id="depth" name="depth" value="{{ old('depth', $product->depth) }}" placeholder="Depth" step="0.01"> in.</div>
-                                    </div>
+                            <label class="label-col" for="dim">Dimensions</label>
+                            <div class="input-col input-col-group">
+                                <div><input type="number" id="width" name="width" value="{{ old('width', $product->width) }}" placeholder="Width" step="0.01"> in.</div>
+                                <div><input type="number" id="height" name="height" value="{{ old('height', $product->height) }}" placeholder="Height" step="0.01"> in.</div>
+                                <div><input type="number" id="depth" name="depth" value="{{ old('depth', $product->depth) }}" placeholder="Depth" step="0.01"> in.</div>
+                            </div>
                         </div>
 
                         <div class="form-row">
@@ -181,7 +195,7 @@
                                             <select id="product-shipping-rate-type" name="shipping_rate_type">
                                                 <option value="global" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'global' ? 'selected="selected"' : '' }}>Use Global Value</option>
                                                 <option value="flat" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'flat' ? 'selected="selected"' : '' }}>Flat Rate</option>
-                                                <option value="estimate" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'estimate' ? 'selected="selected"' : '' }}>Estimated</option>
+                                                <option value="estimated" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'estimated' ? 'selected="selected"' : '' }}>Estimated</option>
                                             </select>
                                         </div>
                                     </div>
@@ -243,9 +257,6 @@
                         </div>
 
                         <div class="variations-list">
-                        @php
-                            //dump( $product->variations);
-                        @endphp
                         @foreach( $product->variations as $variation )
 
                             <div class="variation-item" data-variation-id="{{ $variation->id }}" data-id="{{ $variation->id }}">
@@ -257,7 +268,6 @@
                                         @endif
                                             @php
                                             $attrSets = $variation->attribute_set;
-                                            //dump($attrSets);
                                             @endphp
                                             @foreach( $attrSets as $key => $attrSet )
                                                 @php
@@ -318,6 +328,13 @@
                                         </div>
 
                                         <div class="form-row">
+                                            <label class="label-col" for="cost{{ $variation->id }}">Cost</label>
+                                            <div class="input-col">
+                                                <input type="number" id="cost{{ $variation->id }}" name="variations[{{ $variation->id }}][cost]" value="{{ $variation->cost }}" step="0.01">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-row">
                                             <label class="label-col" for="price{{ $variation->id }}">Price</label>
                                             <div class="input-col">
                                                 <input type="number" id="price{{ $variation->id }}" name="variations[{{ $variation->id }}][price]" value="{{ $variation->price }}" step="0.01">
@@ -349,6 +366,22 @@
                                             <label class="label-col" for="stock{{ $variation->id }}">Stock</label>
                                             <div class="input-col">
                                                 <input type="number" id="stock{{ $variation->id }}" name="variations[{{ $variation->id }}][stock]" value="{{ $variation->stock }}">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-row">
+                                            <label class="label-col" for="weight{{ $variation->id }}">Weight</label>
+                                            <div class="input-col input-col-group">
+                                                <div><input type="number" id="weight{{ $variation->id }}" name="variations[{{ $variation->id }}][weight]" value="{{ $variation->weight }}" step="0.01"> lbs</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-row">
+                                            <label class="label-col" for="dim{{ $variation->id }}">Dimensions</label>
+                                            <div class="input-col input-col-group">
+                                                <div><input type="number" id="width{{ $variation->id }}" name="variations[{{ $variation->id }}][width]" value="{{ $variation->width }}" placeholder="Width" step="0.01"> in.</div>
+                                                <div><input type="number" id="height{{ $variation->id }}" name="variations[{{ $variation->id }}][height]" value="{{ $variation->height }}" placeholder="Height" step="0.01"> in.</div>
+                                                <div><input type="number" id="depth{{ $variation->id }}" name="variations[{{ $variation->id }}][depth]" value="{{ $variation->depth }}" placeholder="Depth" step="0.01"> in.</div>
                                             </div>
                                         </div>
 

@@ -7,7 +7,7 @@ class Shipping
 {
     use CartData;
 
-    public $connector_name = 'shippo';
+    public $connector_name = 'shoppe_shippo';
 
     function __construct()
     {
@@ -26,33 +26,12 @@ class Shipping
         $width = 0.00;
         $height = 0.00;
 
-        $lengths = [];
-        $width = [];
-        $heights = [];
+        $dims = $cart['dimensions']['estimated'];
 
-        // Lets get all the weight and sizes and add some padding
-        // We will need to get the max dimensions
-        foreach( $cart['items'] as $item ){
-
-            if( $item->variation_id ){
-
-
-
-            } else {
-
-                $weight += (float) $item->product->weight;
-                $widths[] = (float) $item->product->width;
-                $heights[] = (float) $item->product->height;
-                $lengths[] = (float) $item->product->depth;
-
-            }
-
-        }
-
-        $length = max( $lengths ) + 1;
-        $width = max( $widths ) + 1;
-        $height = max( $heights ) + 1;
-        $weight = $weight + 1;
+        $length = $dims['length'] + 1;
+        $width = $dims['width'] + 1;
+        $height = $dims['height'] + 1;
+        $weight = $cart['estimated_weight'] + 1;
 
         $parcel = [
             "weight"=> $weight,

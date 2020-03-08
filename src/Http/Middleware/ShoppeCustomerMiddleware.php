@@ -16,7 +16,7 @@ class ShoppeCustomerMiddleware
     {
         if (!app('ShoppeAuth')->guest()) {
             $user = app('ShoppeAuth')->user();
-            return $user->hasRole('customer') ? $next($request) : redirect('/');
+            return $user->hasRole('customer') || $user->hasRole('admin') || $user->hasRole('editor') ? $next($request) : redirect('/');
         }
         $urlLogin = route('login');
         return redirect()->guest($urlLogin);

@@ -27,16 +27,20 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
     Route::post('/order-lines/refund/{orderLine}', $namespacePrefix.'Admin\OrderController@refundOrderLine');
     Route::get('/shipping-label/{order}', $namespacePrefix.'Admin\OrderController@getShippingLabel');
     Route::get('/transaction-details/{transaction_id}', config('shoppe.payment_connector').'@getCharge');
+    Route::post('/orders/{order}/note', $namespacePrefix.'Admin\OrderController@createNote');
+    Route::get('/resend-reciept/{order}', $namespacePrefix.'Admin\OrderController@resendReceipt');
 
     Route::get('/shoppe', $namespacePrefix.'Admin\ShoppeController@index')->name('shoppe');
     Route::get('/shoppe-reports', $namespacePrefix.'Admin\ShoppeReportController@index')->name('shoppe');
+    Route::get('/shoppe/sales-report', $namespacePrefix.'Admin\ShoppeReportController@getSales')->name('shoppe');
+    Route::get('/shoppe/profit-report', $namespacePrefix.'Admin\ShoppeReportController@getProfit')->name('shoppe');
     Route::get('/shoppe-settings', $namespacePrefix.'Admin\ShoppeSettingsController@index')->name('shoppe');
 
 });
 
 Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
-    Route::get('/'.config('shoppe.slugs.store_landing'), ['uses' => $namespacePrefix.'ProductController@index', 'as' => 'products']);
-    Route::get('/'.config('shoppe.slugs.product_single').'/{slug}', ['uses' => $namespacePrefix.'ProductController@get', 'as' => 'products']);
+    Route::get('/'.config('shoppe.slugs.store_landing', 'products'), ['uses' => $namespacePrefix.'ProductController@index', 'as' => 'products']);
+    Route::get('/'.config('shoppe.slugs.product_single', 'products').'/{slug}', ['uses' => $namespacePrefix.'ProductController@get', 'as' => 'products']);
 
     Route::post('/cart', ['uses' => $namespacePrefix.'CartController@create', 'as' => 'cart']);
     Route::get('/cart', ['uses' => $namespacePrefix.'CartController@index', 'as' => 'cart']);
@@ -49,7 +53,14 @@ Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
 });
 
 Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function () use ( $namespacePrefix ) {
-    Route::get('/customer-account', ['uses' => $namespacePrefix.'CustomerController@index', 'as' => 'customer']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account'), ['uses' => $namespacePrefix.'CustomerController@index', 'as' => 'customer.account']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/orders/{id}', ['uses' => $namespacePrefix.'CustomerController@order', 'as' => 'customer.order']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/security', ['uses' => $namespacePrefix.'CustomerController@security', 'as' => 'customer.security']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses', ['uses' => $namespacePrefix.'CustomerController@addresses', 'as' => 'customer.addresses']);
+    Route::put('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses/{id}', ['uses' => $namespacePrefix.'CustomerController@addressUpdate', 'as' => 'customer.addresses']);
+    Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses', ['uses' => $namespacePrefix.'CustomerController@addressCreate', 'as' => 'customer.addresses']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards', ['uses' => $namespacePrefix.'CustomerController@cards', 'as' => 'customer.cards']);
+
 });
 
 Route::group(['prefix' => 'api', 'as' => 'shoppe.'], function () use ( $namespacePrefix ) {

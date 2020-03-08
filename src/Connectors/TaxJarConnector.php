@@ -3,14 +3,14 @@ namespace Newelement\Shoppe\Connectors;
 
 use Newelement\Shoppe\Traits\CartData;
 
-class Taxes
+class TaxJarConnector
 {
     use CartData;
 
     //private $avalara;
     private $taxjar;
     private $message = 'Tax collected successful.';
-    public $connector_name = 'taxjar';
+    public $connector_name = 'shoppe_taxjar';
 
     function __construct()
     {
@@ -23,9 +23,6 @@ class Taxes
 
     public function getTaxes( $checkout )
     {
-        $cart = $this->getCartItems();
-        //$response = $this->alavaraFree($address);
-        //$response = $this->avalaraPro($shippingCost, $address, $cart);
         $response = $this->taxJar($checkout);
 
         $success = $response? true : false;
@@ -34,39 +31,6 @@ class Taxes
 
         return ['tax_amount' => $taxAmount, 'tax_rate' => $rate, 'success' => $success, 'message' => $this->message];
     }
-
-    /*
-    protected function avalaraFree($address)
-    {
-        $client = new \GuzzleHttp\Client();
-        $taxAmount = 0.00;
-        try{
-            $response = $client->get('https://sandbox-rest.avatax.com/api/v2/taxrates/byaddress', [
-                'query' => [
-                    'line1' => $address['street1'],
-                    'line2' => $address['street2'],
-                    'city' => $address['city'],
-                    'region' => $address['state'],
-                    'postalCode' => $address['zip'],
-                    'country' => $address['country']
-                ],
-                'auth' => [
-                    config('shoppe.avalara_user'),
-                    config('shoppe.avalara_pass')
-                ]
-            ]);
-
-            $data = json_decode( $response->getBody() );
-            $rate = $data->totalRate;
-            $taxAmount = round( ( $rate * $cartItems['sub_total'] ), 2, PHP_ROUND_HALF_DOWN);
-
-        } catch ( \Exception $e ){
-            $this->message = $e->getMessage();
-            return false;
-        }
-
-        return $taxAmount;
-    }*/
 
 
     /*

@@ -83,6 +83,13 @@
                     </div>
 
                     <div class="form-row">
+                        <label class="label-col" for="cost">Cost</label>
+                        <div class="input-col">
+                            <input type="number" id="cost" name="cost" value="{{ old('cost') }}" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
 						<label class="label-col" for="price">Price</label>
 						<div class="input-col">
 							<input type="number" id="price" name="price" value="{{ old('price') }}" step="0.01">
@@ -95,6 +102,13 @@
 							<input type="number" id="sale-price" name="sale_price" value="{{ old('sale_price') }}" step="0.01">
 						</div>
 					</div>
+
+                    <div class="form-row">
+                        <label class="label-col" for="taxable">Taxable</label>
+                        <div class="input-col has-checkbox">
+                            <label><input type="checkbox" id="taxable" name="is_taxable" value="1" {{ old('is_taxable') === '1' ? 'checked' : '' }}> Yes</label>
+                        </div>
+                    </div>
 
                     <div class="form-row">
                         <label class="label-col" for="contact-price">Contact for Pricing</label>
@@ -183,7 +197,7 @@
                 							<select id="product-shipping-rate-type" name="shipping_rate_type">
                     							<option value="global" {{ old('shipping_rate_type') === 'global' ? 'selected="selected"' : '' }}>Use Global Value</option>
                     							<option value="flat" {{ old('shipping_rate_type') === 'flat' ? 'selected="selected"' : '' }}>Flat Rate</option>
-                    							<option value="estimate" {{ old('shipping_rate_type') === 'estimate' ? 'selected="selected"' : '' }}>Estimated</option>
+                    							<option value="estimated" {{ old('shipping_rate_type') === 'estimated' ? 'selected="selected"' : '' }}>Estimated</option>
                 							</select>
             							</div>
             						</div>

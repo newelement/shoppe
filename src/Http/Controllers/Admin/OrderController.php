@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Newelement\Shoppe\Models\Order;
 use Newelement\Shoppe\Models\OrderLine;
+use Newelement\Shoppe\Models\OrderNote;
 use Newelement\Shoppe\Traits\Transactions;
 use Auth;
 
@@ -98,6 +99,8 @@ class OrderController extends Controller
             break;
         }
 
+        $order->updated_by = Auth::user()->id;
+        $order->updated_at = now();
         $order->status = $status;
         $order->save();
 
@@ -146,6 +149,8 @@ class OrderController extends Controller
             $transArr = [
                 'type' => 'credit',
                 'amount' => $orderTotal,
+                'tax_amount' => (float) $order->tax_amount,
+                'shipping_amount' => (float) $order->shipping_amount,
                 'order_id' => $order->id,
                 'transaction_id' => $response['transaction_id'],
                 'notes' => $request->notes,
@@ -176,6 +181,10 @@ class OrderController extends Controller
                 }
 
             }
+
+            $order->updated_by = Auth::user()->id;
+            $order->updated_at = now();
+            $order->save();
 
             // Notify user order was refunded
 
@@ -212,7 +221,7 @@ class OrderController extends Controller
         $qty = (int) $request->qty;
         $notes = $request->notes;
         $shippingAmount = (float) ( $request->shipping_amount )? $request->shipping_amount : 0.00;
-        $taxes = 0;
+        $taxes = 0.00;
 
         if( $qty > $orderLine->qty  ){
             if( $request->ajax() ){
@@ -286,6 +295,8 @@ class OrderController extends Controller
             $transArr = [
                 'type' => 'credit',
                 'amount' => $amount + $shippingAmount + $taxes,
+                'tax_amount' => $taxes,
+                'shipping_amount' => $shippingAmount,
                 'order_id' => $order->id,
                 'line_id' => $orderLine->id,
                 'transaction_id' => $transactionId,
@@ -296,18 +307,11 @@ class OrderController extends Controller
 
             // Return QTY back into stock
             if( $qty ){
-                $orderLine->qty = $orderLine->qty - $qty;
 
-                if( $orderLine->qty === 0 ){
-                    $orderLine->status = 4;
-                }
-
-                $orderLine->save();
             }
 
-            // Return amounts
-            $order->shipping_amount = $order->shipping_amount - $shippingAmount;
-            $order->tax_amount = $order->tax_amount - $taxes;
+            $order->updated_by = Auth::user()->id;
+            $order->updated_at = now();
             $order->save();
 
 
@@ -345,6 +349,50 @@ class OrderController extends Controller
             }
         }
 
+    }
+
+    public function createNote(Request $request, Order $order)
+    {
+        $validatedData = $request->validate([
+            'note' => 'required'
+        ]);
+
+        if( !$order ){
+            abort(404);
+        }
+
+        $ordernote = $request->note;
+        $public = $request->allow_public? 1 : 0;
+
+        $note = new OrderNote;
+        $note->order_id = $order->id;
+        $note->notes = $ordernote;
+        $note->public = $public;
+        $note->save();
+
+        if($public){
+            $email = $order->user->email;
+            // Notify user that a public note was entered
+        }
+
+        $note->notes = nl2br($ordernote);
+        $user = $note->createdUser;
+        $note->user = $user->name;
+        $note->created = $note->created_at->timezone(config('neutrino.timezone'))->format('M j, Y g:i a');
+
+        if( $request->ajax() ){
+            return response()->json([ 'note' => $note ]);
+        } else {
+            return redirect()->back()->with('success', 'Note added.');
+        }
+
+    }
+
+    public function resendReceipt(Request $request, Order $order)
+    {
+        $email = $order->user->email;
+        $sent = true;
+        return response()->json(['sent' => $sent]);
     }
 
 }

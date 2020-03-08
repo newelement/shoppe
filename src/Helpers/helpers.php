@@ -12,6 +12,8 @@ use Newelement\Neutrino\Models\Form;
 use Newelement\Neutrino\Models\FormField;
 use Newelement\Neutrino\Http\Controllers\ContentController;
 use Newelement\Shoppe\Models\Product;
+use Newelement\Shoppe\Models\Order;
+use Newelement\Shoppe\Models\ShoppeSetting;
 use Newelement\Shoppe\Models\ProductAttribute;
 use Newelement\Shoppe\Models\ProductVariation;
 use Newelement\Shoppe\Models\Cart;
@@ -53,6 +55,7 @@ function getProductAttributes($productId = false){
     return $attributes;
 }
 
+
 function cartCount(){
     $count = 0;
     $expire = 60*24*30*30;
@@ -82,7 +85,7 @@ function cartCount(){
         $itemCount += $item->qty;
     }
 
-    return '<span id="cart-count">'.$itemCount.'</span> <span id="cart-plural">item'.($itemCount === 1? '</span>' : 's</span>');
+    return $itemCount;
 }
 
 
@@ -126,6 +129,10 @@ function getOrderTotal( $order ){
 
     return $debit  - $credit;
 
+}
+
+function getNewOrderCount(){
+    return Order::where('status', 1)->count();
 }
 
 function hasProductFilter(){
@@ -315,4 +322,60 @@ function productStock($productId){
     if( $min < $max ){
         return $min.' - '.$max;
     }
+}
+
+function getShoppeSetting($key){
+    $setting = ShoppeSetting::where('name', $key)->first();
+    $value = _parseSettingValue($setting);
+    return $value;
+}
+
+function getShoppeSettings(){
+    $arr = [];
+    $settings = ShoppeSetting::all();
+    foreach( $settings as $setting ){
+        $arr[ $setting->name ] = _parseSettingValue($setting);
+    }
+    return $arr;
+}
+
+function _parseSettingValue($setting){
+    $value = false;
+    if( !$setting ){
+        return $value;
+    }
+    switch( $setting->type ){
+        case 'string' :
+            $value = $setting->string_value;
+        break;
+        case 'select' :
+            $value = $setting->string_value;
+        break;
+        case 'radio' :
+            $value = $setting->string_value;
+        break;
+        case 'checkbox' :
+            $value = $setting->string_value;
+        break;
+        case 'float' :
+            $value = $setting->float_value;
+        break;
+        case 'number' :
+            $value = $setting->integer_value;
+        break;
+        case 'bool' :
+            $value = $setting->bool_value;
+        break;
+        case 'text' :
+            $value = $setting->text_value;
+        break;
+        case 'decimal' :
+            $value = $setting->decimal_value;
+        break;
+        case 'date' :
+            $value = $setting->date_value;
+        break;
+    }
+
+    return $value;
 }

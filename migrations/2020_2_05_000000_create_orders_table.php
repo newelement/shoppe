@@ -41,7 +41,7 @@ class CreateOrdersTable extends Migration
             $table->tinyInteger('complete_order_sent')->default(0);
 			$table->bigInteger('created_by')->nullable();
 			$table->bigInteger('updated_by')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
             $table->softDeletes();
 			$table->index('user_id');
             $table->index('ref_id');

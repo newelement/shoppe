@@ -5,6 +5,51 @@
     }
 }
 
+.section-card{
+    background-color: #fff;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,.1);
+    margin-bottom: 32px;
+
+    header{
+        padding: 20px 24px;
+        border-bottom: 1px solid #ececec;
+        position: relative;
+
+        h3{
+            font-size: 20px;
+            margin: 0;
+        }
+    }
+
+    footer{
+
+    }
+
+    .inner{
+        padding: 18px 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    &.side-card{
+        header{
+            padding: 18px 24px;
+            h3{
+                font-size: 18px;
+                margin: 0;
+            }
+        }
+    }
+}
+
+.checkout-prev-btn{
+    position: absolute;
+    top: 50%;
+    right: 24px;
+    transform: translateY(-50%);
+}
+
 .product-images-thumbs{
     display: flex;
     flex-wrap: wrap;
@@ -94,6 +139,11 @@
     }
 }
 
+.sticky-card{
+    position: sticky;
+    top: 24px;
+}
+
 .shipping-taxes-loader{
     display: flex;
     position: relative;
@@ -102,13 +152,13 @@
    // margin-bottom: 0;
 
     dt{
-        width: 50%;
+        width: 70%;
         color: #777;
         font-size: 14px;
     }
 
     dd{
-        width: 50%;
+        width: 30%;
         color: #777;
         padding-left: 12px;
         font-size: 14px;
@@ -144,26 +194,44 @@
     }
 }
 
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.1em;
+    vertical-align: middle;
+    margin-top: -5px;
+}
+
 .checkout-total{
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
     padding-top: 24px;
-    border-top: 1px solid #ccc;
+    border-top: 1px solid #ececec;
+    margin-bottom: 6px;
 
     dt{
         width: 50%;
         color: #777;
         font-size: 18px;
+        text-transform: uppercase;
     }
 
     dd{
         width: 50%;
-        color: #777;
+        color: #999;
         padding-left: 12px;
         font-size: 18px;
         font-weight: 700;
         text-align: right;
+
+        &:last-of-type{
+            margin-bottom: 0;
+        }
+
+        .total{
+            color: #777;
+        }
     }
 }
 
@@ -174,6 +242,89 @@
 .order-summary-block{
     position: sticky;
     top: 32px;
+}
+
+.cart-summary{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #888;
+    padding-top: 6px;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #ececec;
+
+    dt{
+        width: 70%;
+        display: flex;
+        flex-direction: row;
+        color: #777;
+        //align-items: center;
+        justify-content: space-between;
+        padding-right: 12px;
+    }
+    dd{
+        width: 30%;
+        text-align: right;
+        color: #999;
+        &:last-of-type{
+            margin-bottom: 0;
+        }
+    }
+}
+
+.shipping-service-summary{
+    display: block;
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.shipping-address-summary{
+    visibility: visible;
+    border: 1px solid #C6F6D5;
+    background-color: #F0FFF4;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: #38A169;
+    border-radius: 3px;
+    position: relative;
+    opacity: 1;
+    transition: opacity .5s ease;
+
+    h4{
+        color: #444;
+        font-size: 14px;
+        font-weight: 700;
+        color: #2F855A;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    &.hide-me{
+        padding: 0;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity .5s ease;
+    }
+}
+
+.checkout-messages{
+    padding: 12px;
+    color: #C53030;
+    text-align: center;
+    margin-bottom: 12px;
+    border: 1px solid #C53030;
+    border-radius: 3px;
+
+    &:empty{
+        display: none;
+    }
+}
+
+.new-shipping-address{
+    padding-top: 24px;
 }
 
 .checkout-step{
@@ -199,16 +350,6 @@
         line-height: 29px;
         border: 1px solid #999;
         transition: border-color .35s ease, color .25s ease;
-    }
-
-    .step-div{
-        display: block;
-        //flex-grow: 1;
-        width: 50px;
-        height: 3px;
-        background-color: #eee;
-        margin: 0 12px;
-        transition: background-color .35s ease;
     }
 
     &.current{
@@ -242,6 +383,18 @@
         flex-direction: row;
         align-items: center;
         justify-content: center;
+        max-width: 85%;
+        margin: 0 auto;
+    }
+
+    .step-div{
+        display: block;
+        flex-grow: 1;
+        //width: 50px;
+        height: 3px;
+        background-color: #eee;
+        margin: 0 12px;
+        transition: background-color .35s ease;
     }
 }
 
@@ -277,11 +430,118 @@
     }
 }
 
+.block-check-label{
+    label{
+        display: block;
+        padding: 10px 12px;
+        border-radius: 3px;
+        border: 1px solid #ececec;
+        cursor: pointer;
+        color: #555;
+        transition: background-color .25s ease;
+
+        &:hover{
+            background-color: #f3f3f3;
+        }
+    }
+
+    input[type="radio"]:checked + label{
+        background-color: #F0FFF4;
+        border-color: #C6F6D5;
+        color: #2F855A;
+
+        &:before{
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            color: #2F855A;
+            content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 8C119.033 8 8 119.033 8 256s111.033 248 248 248 248-111.033 248-248S392.967 8 256 8zm0 464c-118.664 0-216-96.055-216-216 0-118.663 96.055-216 216-216 118.664 0 216 96.055 216 216 0 118.663-96.055 216-216 216zm141.63-274.961L217.15 376.071c-4.705 4.667-12.303 4.637-16.97-.068l-85.878-86.572c-4.667-4.705-4.637-12.303.068-16.97l8.52-8.451c4.705-4.667 12.303-4.637 16.97.068l68.976 69.533 163.441-162.13c4.705-4.667 12.303-4.637 16.97.068l8.451 8.52c4.668 4.705 4.637 12.303-.068 16.97z"></path></svg>');
+            vertical-align: middle;
+            margin-right: 6px;
+            margin-top: -3px;
+            position: relative;
+        }
+    }
+
+    [type="radio"]{
+        display: none;
+    }
+
+    &:last-child{
+        margin-bottom: 0;
+    }
+}
+
 .shipping-rates-list{
     display: block;
     margin: 0;
     padding: 0;
     list-style: none;
+
+    li{
+        &.rate-item{
+
+            input[type="radio"]{
+                display: none;
+            }
+        }
+
+        label{
+            display: flex;
+            padding: 10px 12px;
+            border-radius: 3px;
+            border: 1px solid #ececec;
+            cursor: pointer;
+            color: #555;
+            transition: background-color .25s ease;
+
+            &:hover{
+                background-color: #f3f3f3;
+            }
+
+        }
+
+        input[type="radio"]:checked + label{
+            background-color: #F0FFF4;
+            border-color: #C6F6D5;
+            color: #2F855A;
+
+            &:before{
+                width: 16px;
+                height: 16px;
+                display: block;
+                padding-top: 4px;
+                color: #2F855A;
+                content: url('data:image/svg+xml; utf8, <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M256 8C119.033 8 8 119.033 8 256s111.033 248 248 248 248-111.033 248-248S392.967 8 256 8zm0 464c-118.664 0-216-96.055-216-216 0-118.663 96.055-216 216-216 118.664 0 216 96.055 216 216 0 118.663-96.055 216-216 216zm141.63-274.961L217.15 376.071c-4.705 4.667-12.303 4.637-16.97-.068l-85.878-86.572c-4.667-4.705-4.637-12.303.068-16.97l8.52-8.451c4.705-4.667 12.303-4.637 16.97.068l68.976 69.533 163.441-162.13c4.705-4.667 12.303-4.637 16.97.068l8.451 8.52c4.668 4.705 4.637 12.303-.068 16.97z"></path></svg>');
+                vertical-align: middle;
+                margin-right: 6px;
+                margin-top: -1px;
+                position: relative;
+            }
+
+            .rate-estimated-days{
+                color: #38A169;
+            }
+        }
+
+        svg{
+            width: 18px;
+            height: auto;
+            display: inline-block;
+            vertical-align: middle;
+            animation: spinning 1.5s linear infinite;
+        }
+
+        span.getting-rates{
+            display: inline-block;
+            vertical-align: super;
+        }
+    }
+}
+
+.rate-estimated-days{
+    font-size: 14px;
+    color: #999;
 }
 
 .StripeElement {
@@ -291,6 +551,36 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     background-color: #fff;
+}
+
+.customer-nav{
+    ul{
+        display: block;
+        margin: 0 0 24px 0;
+        padding: 0 0 0 32px;
+        list-style: none;
+
+        li{
+            margin-bottom: 4px;
+
+            a{
+                display: block;
+                padding: 6px 10px;
+                transition: opacity .25s ease;
+                text-decoration: none;
+
+                &:hover{
+                    opacity: .35;
+                }
+            }
+
+            &.active{
+                a{
+                    background-color: #ececec;
+                }
+            }
+        }
+    }
 }
 
 @keyframes spinning {

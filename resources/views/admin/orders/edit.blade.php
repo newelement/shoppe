@@ -17,12 +17,18 @@
                     </div>
                     <div class="order-header-top-item">
                         <strong>Ordered By:</strong> {{ $order->user->name }}<br>{{ $order->user->email }}
+                        @if( $order->status > 1 )
+                        <div class="resend-order-receipt-wrap">
+                            <a href="#" class="resend-order-receipt">Resend order receipt</a>
+                        </div>
+                        @endif
                     </div>
                     <div class="order-header-top-item">
                         <strong>Order Date:</strong> {{ $order->created_at->timezone( config('neutrino.timezone') )->format('M j, Y g:i a') }}<br>
                         <small>
                         <strong>Last Updated:</strong> {{ $order->updated_at->timezone( config('neutrino.timezone') )->format('M j, Y g:i a') }}
-                        </small>
+                        </small><br>
+                        <small><strong>Updated by:</strong> {{ $order->createdUser->name }}</small>
                     </div>
                 </div>
                 <div class="inner">
@@ -122,6 +128,23 @@
                                     @endif
                                     </td>
                                 </tr>
+                                @foreach( $line->credits as $credit )
+                                <tr class="tr-line-credit">
+                                    <td></td>
+                                    <td></td>
+                                    <td>{{ $credit->notes }} </td>
+                                    <td class="text-right">
+                                        - ${{ $credit->amount }}<br>
+                                        <small>
+                                        <strong>Includes</strong>
+                                        Taxes: {{ $credit->tax_amount }} /
+                                        Shipping: {{ $credit->shipping_amount }}
+                                        </small>
+                                    </td>
+                                    <td></td>
+                                    <td class="text-center"></td>
+                                </tr>
+                                @endforeach
                             @endforeach
                             </tbody>
                         </table>
@@ -175,8 +198,6 @@
                 </div>
             </div>
 
-
-
         </div>
 
         <aside class="sidebar">
@@ -214,11 +235,48 @@
                         </div>
                     </div>
 
-                    <div class="form-actions">
+                    <div class="form-row -actions">
                         <button type="submit" class="btn form-btn">Update Status</button>
                     </div>
                 </form>
             @endif
+
+                <form action="/orders/{{ $order->id }}/notes" method="post">
+                    <div class="form-row">
+                        <label class="label-col" for="order-note">Order Note</label>
+                        <div class="input-col">
+                            <textarea id="order-note" name="note"></textarea>
+                        </div>
+                        <div class="input-col">
+                            <label><input id="order-note-public" type="checkbox" name="allow_public" value="1"> This is a customer note. (public)</label>
+                        </div>
+                    </div>
+                    <div class="form-row form-actions">
+                        <div class="order-notes-message"></div>
+                        <button type="submit" id="create-note-btn" class="btn form-btn">Add Note</button>
+                    </div>
+                </form>
+
+                <h3 style="margin-bottom: 12px" class="text-center">Order Notes</h3>
+                @if( count($order->orderNotes) === 0 )
+                <small class="text-center">There are no notes yet.</small>
+                @endif
+
+                <div class="order-notes-list">
+                    <ul>
+                        @foreach( $order->orderNotes as $note )
+                        <li>
+                            <div class="order-note-date">
+                                By: {{ $note->createdUser->name }} on {{ $note->created_at->timezone(config('neutrino.timezone'))->format('M j, Y g:i a') }}
+                            </div>
+                            <div class="order-note {{ $note->public? 'public' : 'private' }}">
+                            {!! nl2br( $note->notes ) !!}
+                            </div>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+
             </div>
         </aside>
     </div>
@@ -268,4 +326,10 @@
         </div>
     </div>
 
+@endsection
+
+@section('js')
+<script>
+window.orderId = {{ $order->id }};
+</script>
 @endsection

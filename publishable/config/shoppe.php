@@ -15,6 +15,7 @@ return [
         'store_landing' => 'products',
         'product_single' => 'products',
         'order_complete' => 'order-complete',
+        'customer_account' => 'customer-account',
     ],
 
     'pagination_limits' => [
@@ -38,7 +39,7 @@ return [
     'SQUARE_PASS' => '',
 
     'shipping_connector' => '\\Newelement\\Shoppe\\Connectors\\Shipping',
-    'taxes_connector' => '\\Newelement\\Shoppe\\Connectors\\Taxes',
+    'taxes_connector' => '\\Newelement\\Shoppe\\Connectors\\AvalaraConnector',
     'payment_connector' => '\\Newelement\\Shoppe\\Connectors\\Payment',
 
 ];

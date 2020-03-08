@@ -25,6 +25,7 @@ class CreateProductsTable extends Migration
             $table->text('product_file')->nullable();
             $table->bigInteger('role_id')->nullable();
 
+            $table->decimal('cost', 10, 2)->nullable();
 			$table->decimal('price', 10, 2)->nullable();
 			$table->decimal('sale_price', 10 , 2)->nullable();
             $table->boolean('is_taxable')->default(1);
@@ -43,7 +44,7 @@ class CreateProductsTable extends Migration
             $table->decimal('height', 10, 2)->nullable();
             $table->decimal('depth', 10, 2)->nullable();
 
-            $table->text('shipping_rate_type', 80);
+            $table->string('shipping_rate_type', 80);
             $table->decimal('shipping_rate', 10 , 2)->nullable();
 
 			$table->text('keywords')->nullable();

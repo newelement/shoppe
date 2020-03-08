@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Hash;
 use App\User;
-use App\Role;
+use Newelement\Neutrino\Models\Role;
 use Auth;
 
 
@@ -36,7 +36,7 @@ class Customer extends Model
 
         if( !$userExists ){
 
-            $newPassword = str_random(12);
+            $newPassword = \Str::random(12);
             $role = Role::where('name', 'customer')->first();
 
             $user = new User;

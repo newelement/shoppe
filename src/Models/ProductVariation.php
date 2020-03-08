@@ -26,7 +26,11 @@ class ProductVariation extends Model
             'sale_price',
             'sku',
             'mfg_part_number',
-            'stock'
+            'stock',
+            'weight',
+            'width',
+            'height',
+            'depth'
         ];
 
     public function getAttributeSetAttribute($value)

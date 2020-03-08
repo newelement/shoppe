@@ -63,10 +63,12 @@ class ProductController extends Controller
         $product->content = htmlentities($request->content);
         $product->short_content = htmlentities($request->short_content);
         $product->specs = htmlentities($request->specs);
+        $product->cost = $request->cost;
         $product->price = $request->price;
         $product->contact_price = $request->contact_price ? 1 : 0;
         $product->contact_avail = $request->contact_avail ? 1 : 0;
         $product->sale_price = $request->sale_price;
+        $product->is_taxable = $request->is_taxable ? 1 : 0;
         $product->sku = $request->sku;
         $product->mfg_part_number = $request->mfg_part_number;
         $product->stock = $request->stock;
@@ -176,11 +178,16 @@ class ProductController extends Controller
                 */
                 $variation->image = $variationData['image'];
                 $variation->desc = $variationData['desc'];
+                $variation->cost = $variationData['cost'];
                 $variation->price = $variationData['price'];
                 $variation->sale_price = $variationData['sale_price'];
                 $variation->sku = $variationData['sku'];
                 $variation->mfg_part_number = $variationData['mfg_part_number'];
                 $variation->stock = $variationData['stock'];
+                $variation->weight = $variationData['weight'];
+                $variation->width = $variationData['width'];
+                $variation->height = $variationData['height'];
+                $variation->depth = $variationData['depth'];
                 $variation->save();
 
             }
@@ -222,10 +229,12 @@ class ProductController extends Controller
         $product->content = htmlentities($request->content);
         $product->short_content = htmlentities($request->short_content);
         $product->specs = htmlentities($request->specs);
+        $product->cost = $request->cost;
         $product->price = $request->price;
         $product->contact_price = $request->contact_price ? 1 : 0;
         $product->contact_avail = $request->contact_avail ? 1 : 0;
         $product->sale_price = $request->sale_price;
+        $product->is_taxable = $request->is_taxable ? 1 : 0;
         $product->sku = $request->sku;
         $product->mfg_part_number = $request->mfg_part_number;
         $product->stock = $request->stock;
@@ -344,11 +353,16 @@ class ProductController extends Controller
                 */
                 $variation->image = $variationData['image'];
                 $variation->desc = $variationData['desc'];
+                $variation->cost = $variationData['cost'];
                 $variation->price = $variationData['price'];
                 $variation->sale_price = $variationData['sale_price'];
                 $variation->sku = $variationData['sku'];
                 $variation->mfg_part_number = $variationData['mfg_part_number'];
                 $variation->stock = $variationData['stock'];
+                $variation->weight = $variationData['weight'];
+                $variation->width = $variationData['width'];
+                $variation->height = $variationData['height'];
+                $variation->depth = $variationData['depth'];
                 $variation->save();
 
             }
