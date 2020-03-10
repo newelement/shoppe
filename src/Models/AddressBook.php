@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AddressBook extends Model
 {
+    use SoftDeletes;
+
     public function user()
     {
         return $this->belongsTo('Newelement\Neutrino\Models\User');

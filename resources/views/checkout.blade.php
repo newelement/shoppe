@@ -178,6 +178,23 @@ $socialImages = getImageSizes($data->social_image);
                                         </div>
                                     </div>
 
+                                    @if( $data->payment_types )
+                                        <ul class="choose-stored-payment-list">
+                                        @foreach( $data->payment_types as $key => $paymentType )
+                                            <li>
+                                                <input id="payment-type-{{ $key }}" type="radio" name="saved_payment" value="{{ $paymentType['id'] }}" {{ $paymentType['default']? 'checked' : '' }} >
+                                                <label for="payment-type-{{ $key }}">{{ $paymentType['card_brand'] }} / {{ $paymentType['last_four'] }} &mdash; Expires: {{ $paymentType['exp_month'] }}-{{$paymentType['exp_year']}}</label>
+                                            </li>
+                                        @endforeach
+                                            <li>
+                                                <input id="payment-type-new" type="radio" name="saved_payment" value="new_payment_type">
+                                                <label for="payment-type-new">ENTER NEW PAYMENT TYPE &rarr;</label>
+                                            </li>
+                                        </ul>
+                                    @endif
+
+
+
                                     <!--
                                     <div class="form-group row">
                                         <legend class="col-sm-4 col-form-label pt-0">Billing Address</legend>
@@ -190,20 +207,8 @@ $socialImages = getImageSizes($data->social_image);
                                             </div>
                                         </div>
                                     </div>
-                                    -->
 
                                     <div class="billing-address">
-                                    <div class="form-group row">
-                                            <label for="billing-address" class="col-sm-4 col-form-label">Address</label>
-                                            <div class="col-sm-8">
-                                                <input type="text" class="form-control" id="billing-address" name="billing_address" value="{{ old('billing_address') }}" data-required data-required-message="Please enter your billing address.">
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!--
-                                    <div class="billing-address">
-
-
 
                                         <div class="form-group row">
                                             <label for="billing-address2" class="col-sm-4 col-form-label">Address 2 <small>(optional)</small></label>
@@ -253,12 +258,19 @@ $socialImages = getImageSizes($data->social_image);
                                     </div>
                                     -->
 
-                                    <div id="payment-fields" class="payment-section-fields">
+                                    <div id="payment-fields" class="payment-section-fields @if($data->payment_types) hide @endif ">
 
                                         <div class="form-group row">
                                             <label for="cc-name" class="col-sm-4 col-form-label">Name on card</label>
                                             <div class="col-sm-8">
-                                                <input type="text" class="form-control" id="cc-name" name="cc_name" value="{{ old('cc_name') }}" data-required data-required-message="Please enter the name on your card." required>
+                                                <input type="text" class="form-control" id="cc-name" name="cc_name" value="{{ old('cc_name') }}" data-required data-required-message="Please enter the name on your card.">
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group row">
+                                            <label for="billing-address" class="col-sm-4 col-form-label">Address</label>
+                                            <div class="col-sm-8">
+                                                <input type="text" class="form-control" id="billing-address" name="billing_address" value="{{ old('billing_address') }}" data-required data-required-message="Please enter your billing address.">
                                             </div>
                                         </div>
 
@@ -270,7 +282,7 @@ $socialImages = getImageSizes($data->social_image);
                                         </div>
 
                                         <div class="form-group row">
-                                            <legend class="col-sm-4 col-form-label pt-0">Save card?</legend>
+                                            <legend class="col-sm-4 col-form-label pt-0">Save payment information?</legend>
                                             <div class="col-sm-8">
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" name="save_card" id="save-card" value="1">

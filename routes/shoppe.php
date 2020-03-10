@@ -54,12 +54,21 @@ Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
 
 Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function () use ( $namespacePrefix ) {
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account'), ['uses' => $namespacePrefix.'CustomerController@index', 'as' => 'customer.account']);
-    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/orders/{id}', ['uses' => $namespacePrefix.'CustomerController@order', 'as' => 'customer.order']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/orders/{id}', ['uses' => $namespacePrefix.'CustomerController@order', 'as' => 'customer.account']);
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/security', ['uses' => $namespacePrefix.'CustomerController@security', 'as' => 'customer.security']);
+    Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/security/password', ['uses' => $namespacePrefix.'CustomerController@securityChangePassword', 'as' => 'customer.security']);
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses', ['uses' => $namespacePrefix.'CustomerController@addresses', 'as' => 'customer.addresses']);
     Route::put('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses/{id}', ['uses' => $namespacePrefix.'CustomerController@addressUpdate', 'as' => 'customer.addresses']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses/{id}/default', ['uses' => $namespacePrefix.'CustomerController@addressDefault', 'as' => 'customer.addresses']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses/{id}/delete', ['uses' => $namespacePrefix.'CustomerController@addressDelete', 'as' => 'customer.addresses']);
     Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses', ['uses' => $namespacePrefix.'CustomerController@addressCreate', 'as' => 'customer.addresses']);
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards', ['uses' => $namespacePrefix.'CustomerController@cards', 'as' => 'customer.cards']);
+
+    Route::put('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}', ['uses' => $namespacePrefix.'CustomerController@cardsUpdate', 'as' => 'customer.cards']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/delete', ['uses' => $namespacePrefix.'CustomerController@cardsDelete', 'as' => 'customer.cards']);
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/default', ['uses' => $namespacePrefix.'CustomerController@cardsDefault', 'as' => 'customer.cards']);
+    Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards', ['uses' => $namespacePrefix.'CustomerController@cardsCreate', 'as' => 'customer.cards']);
+
 
 });
 

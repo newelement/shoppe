@@ -21,6 +21,7 @@ let $q = document.querySelector.bind(document),
 
 let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $checkoutForm = document.getElementById('checkout-form'),
+    $newPaymentTypeForm = document.getElementById('new-payment-type-form'),
     $checkoutErrorElement = document.getElementById('checkout-errors'),
     $shippingAddressFields = $$q('.shipping-address-field'),
     $shippingTaxesLoader = $q('.shipping-taxes-loader'),
@@ -31,6 +32,7 @@ let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $sameAsShipping = $q('#same-as-shipping'),
     $newBillingAddress = $q('#new-billing-address'),
     $newShippingAddress = $$q('input[name="shipping_address_option"]'),
+    $newPaymentType = $$q('input[name="saved_payment"]'),
     $checkoutAdvBtns = $$q('.checkout-adv-btn'),
     $checkoutPrevBtns = $$q('.checkout-prev-btn'),
     $checkoutFormSections = $$q('.checkout-form-section'),
@@ -39,7 +41,11 @@ let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $checkoutBillingReview = $q('#checkout-billing-review'),
     $checkoutMessages = $q('.checkout-messages'),
     $customerAddressEditToggle = $$q('.customer-address-edit-toggle'),
-    $editCustomerAddressFields = $$q('.edit-customer-address-fields');
+    $editCustomerAddressFields = $$q('.edit-customer-address-fields'),
+    $toggleCustomerNewShippingAddress = $q('.toggle-customer-new-shipping-address'),
+    $customerPaymentEditToggle = $$q('.customer-payment-edit-toggle'),
+    $editCustomerPaymentFields = $$q('.edit-customer-payment-fields'),
+    $toggleCustomerNewPayment = $q('.toggle-customer-new-payment');
 
 let alertTypes = [
     'alert-primary',
@@ -378,6 +384,20 @@ function resetPlaceOrderLoader(){
     $q('#checkout-submit-btn .spinner-border-sm').classList.add('hide');
 }
 
+function submitOrder(){
+    // AJAX place order
+    let formData = new FormData($checkoutForm);
+    HTTP.post('/checkout', formData)
+        .then( response => {
+            window.location = '/'+response.data.order_complete_route+'/'+response.data.ref_id;
+        })
+        .catch(e => {
+            resetPlaceOrderLoader();
+            console.log(e.response.data.message);
+            $checkoutErrorElement.innerHTML = e.response.data.message;
+    });
+}
+
 
 /*
 * DOM LOAD EVENTS
@@ -397,6 +417,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
     $productPartNumber = $q('#mfg-part-number'),
     $variationId = $q('#variation-id');
 
+
+
     /*
     * STRIPE JS
     *
@@ -414,39 +436,67 @@ window.addEventListener('DOMContentLoaded', (e) => {
             hiddenInput.setAttribute('name', 'token');
             hiddenInput.setAttribute('value', token.id);
             $checkoutForm.appendChild(hiddenInput);
+            submitOrder();
+        }
 
-            // AJAX place order
-            let formData = new FormData($checkoutForm);
-            HTTP.post('/checkout', formData)
-            .then( response => {
-                //window.location = '/'+response.data.order_complete_route+'/'+response.data.ref_id;
-            })
-            .catch(e => {
-                resetPlaceOrderLoader();
-                console.log(e.message);
-                $checkoutErrorElement.innerHTML = e.message;
+        function stripeTokenHandler2(token) {
+            let hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', 'token');
+            hiddenInput.setAttribute('value', token.id);
+            $newPaymentTypeForm.appendChild(hiddenInput);
+            $newPaymentTypeForm.submit();
+        }
+
+        if( $checkoutForm){
+            $checkoutForm.addEventListener('submit', function(e) {
+                showPlaceOrderLoader();
+                e.preventDefault();
+                $checkoutErrorElement.innerHTML = '';
+                let error = validateBilling();
+                console.log(error);
+                if( !error ){
+
+                    // Don't worry about creating a new card token if the user is using
+                    // an existing card
+
+                    if( $newPaymentType.length ){
+                        let savedPaymentType = document.querySelector('input[name="saved_payment"]:checked').value;
+
+                        if( savedPaymentType !== 'new_payment_type' ){
+                            submitOrder();
+                            return;
+                        }
+                    }
+
+                    stripe.createToken(card).then(function(result) {
+                        if (result.error) {
+                            $checkoutErrorElement.innerHTML = $checkoutErrorElement.innerHTML + result.error.message;
+                            resetPlaceOrderLoader();
+                        } else {
+                            stripeTokenHandler(result.token);
+                        }
+                    });
+
+                } else {
+                    resetPlaceOrderLoader();
+                }
             });
         }
 
-        $checkoutForm.addEventListener('submit', function(e) {
-            showPlaceOrderLoader();
-            e.preventDefault();
-            $checkoutErrorElement.innerHTML = '';
-            let error = validateBilling();
-            console.log(error);
-            if( !error ){
+        if($newPaymentTypeForm){
+            $newPaymentTypeForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                $checkoutErrorElement.innerHTML = '';
                 stripe.createToken(card).then(function(result) {
                     if (result.error) {
-                        $checkoutErrorElement.innerHTML = $checkoutErrorElement.innerHTML + result.error.message;
-                        resetPlaceOrderLoader();
+                        $checkoutErrorElement.innerHTML = result.error.message;
                     } else {
-                        stripeTokenHandler(result.token);
+                        stripeTokenHandler2(result.token);
                     }
                 });
-            } else {
-                resetPlaceOrderLoader();
-            }
-        });
+            });
+        }
     }
 
 
@@ -645,6 +695,18 @@ window.addEventListener('DOMContentLoaded', (e) => {
         });
     }
 
+    if( $newPaymentType.length ){
+        $newPaymentType.forEach( (input) => {
+            input.addEventListener('change', (el) => {
+                if( el.target.checked && el.target.value === 'new_payment_type' ){
+                    $q('.payment-section-fields').classList.remove('hide');
+                } else {
+                    $q('.payment-section-fields').classList.add('hide');
+                }
+            });
+        });
+    }
+
     /*
     if( $submitOrderBtn ){
         $submitOrderBtn.addEventListener('click', (e) => {
@@ -719,6 +781,39 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             });
         })
+    }
+
+    if($toggleCustomerNewShippingAddress){
+        $toggleCustomerNewShippingAddress.addEventListener('click', (e) => {
+            e.preventDefault();
+            $q('.new-customer-shipping-address').classList.toggle('hide');
+        });
+    }
+
+    if( $customerPaymentEditToggle.length ){
+        $customerPaymentEditToggle.forEach( (el) => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                let href = e.target.hash.replace('#', '');
+                let hidden = document.getElementById(href).classList.contains('hide');
+                $editCustomerPaymentFields.forEach( (el) => {
+                    el.classList.add('hide');
+                });
+                if( hidden ){
+                    document.getElementById(href).classList.remove('hide');
+                } else {
+                    document.getElementById(href).classList.add('hide');
+                }
+
+            });
+        })
+    }
+
+    if($toggleCustomerNewPayment){
+        $toggleCustomerNewPayment.addEventListener('click', (e) => {
+            e.preventDefault();
+            $q('.new-customer-payment').classList.toggle('hide');
+        });
     }
 
 

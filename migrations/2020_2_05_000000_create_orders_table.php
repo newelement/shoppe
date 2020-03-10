@@ -35,7 +35,10 @@ class CreateOrdersTable extends Migration
             $table->decimal('tax_amount', 9, 2)->nullable();
             $table->float('tax_rate')->nullable();
             $table->string('tax_object_id', 100)->nullable();
-            $table->string('discount_code', 50)->nullable();
+            $table->string('last_four', 4)->nullable();
+            $table->string('card_brand', 20)->nullable();
+            $table->string('last_four', 4)->nullable();
+            $table->string('payment_type', 20)->nullable();
             $table->decimal('discount_amount', 9, 2)->nullable();
             $table->text('notes')->nullable();
             $table->tinyInteger('complete_order_sent')->default(0);

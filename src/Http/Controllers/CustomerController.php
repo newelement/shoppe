@@ -5,13 +5,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Newelement\Neutrino\Facades\Neutrino;
 use Newelement\Shoppe\Models\Order;
+use Newelement\Shoppe\Models\User;
 use Newelement\Shoppe\Models\AddressBook;
+use Newelement\Shoppe\Models\Customer;
 
 class CustomerController extends Controller
 {
+
+    private $Payment;
+
+    public function __construct()
+    {
+        $this->Payment = app('Payment');
+    }
 
     public function index()
     {
@@ -60,6 +70,28 @@ class CustomerController extends Controller
         return view( 'shoppe::customer.security' , [ 'data' => $data ]);
     }
 
+    public function securityChangePassword(Request $request)
+    {
+
+        $validatedData = $request->validate(
+            [
+                'current_password' => 'required',
+                'password' => 'required|confirmed',
+            ]
+        );
+
+        if( Hash::check($request->current_password, auth()->user()->password) ){
+            $request->user()->fill([
+                'password' => Hash::make($request->password)
+            ])->save();
+        } else {
+            return redirect()->back()->with('error', 'Your current password is incorrect.');
+        }
+
+        return redirect( '/'.config('shoppe.slugs.customer_account', 'customer-account').'/security' )->with('success', 'Password updated.');
+
+    }
+
     public function addresses()
     {
         $data = new \stdClass;
@@ -78,6 +110,135 @@ class CustomerController extends Controller
         return view( 'shoppe::customer.addresses' , [ 'data' => $data ]);
     }
 
+    public function addressUpdate(Request $request, $id)
+    {
+
+        $validatedData = $request->validate(
+            [
+                'name' => 'required|max:255',
+                'address' => 'required|max:400',
+                'city' => 'required|max:255',
+                'state' => 'required|max:3',
+                'country' => 'required|max:3',
+                'zipcode' => 'required|max:20',
+            ]
+        );
+
+        $address = AddressBook::where([
+            'id' => $id,
+            'user_id' => auth()->user()->id
+        ])->first();
+
+        if( !$address ){
+            abort(404);
+        }
+
+        $address->name = $request->name;
+        $address->company_name = $request->company_name;
+        $address->address = $request->address;
+        $address->address2 = $request->address2;
+        $address->city = $request->city;
+        $address->state = $request->state;
+        $address->zipcode = $request->zipcode;
+        $address->country = $request->country;
+        $address->save();
+
+        return redirect( '/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses' )->with('success', 'Address updated.');
+
+    }
+
+    public function addressDelete($id)
+    {
+        $address = AddressBook::where([
+            'id' => $id,
+            'user_id' => auth()->user()->id
+        ])->first();
+
+        if( !$address ){
+            abort(404);
+        }
+
+        AddressBook::where([
+            'id' => $id,
+            'user_id' => auth()->user()->id
+        ])->delete();
+
+        return redirect( '/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses' )->with('success', 'Address deleted.');
+
+    }
+
+    public function addressDefault($id)
+    {
+        $address = AddressBook::where([
+            'id' => $id,
+            'user_id' => auth()->user()->id
+        ])->first();
+
+        if( !$address ){
+            abort(404);
+        }
+
+        AddressBook::where([
+            'address_type' => 'SHIPPING',
+            'user_id' => auth()->user()->id
+        ])->update([
+            'default' => 0
+        ]);
+
+        AddressBook::where([
+            'id' => $id,
+            'user_id' => auth()->user()->id
+        ])->update([
+            'default' => 1
+        ]);
+
+        return redirect( '/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses' )->with('success', 'Default address set.');
+
+    }
+
+    public function addressCreate(Request $request)
+    {
+
+        $validatedData = $request->validate(
+            [
+                'name' => 'required|max:255',
+                'address' => 'required|max:400',
+                'city' => 'required|max:255',
+                'state' => 'required|max:3',
+                'country' => 'required|max:3',
+                'zipcode' => 'required|max:20',
+            ]
+        );
+
+        $default = $request->default? 1 : 0;
+
+        if( $default ){
+            AddressBook::where([
+                'address_type' => 'SHIPPING',
+                'user_id' => auth()->user()->id
+            ])->update([
+                'default' => 0
+            ]);
+        }
+
+        $address = new AddressBook;
+        $address->user_id = auth()->user()->id;
+        $address->address_type = 'SHIPPING';
+        $address->name = $request->name;
+        $address->company_name = $request->company_name;
+        $address->address = $request->address;
+        $address->address2 = $request->address2;
+        $address->city = $request->city;
+        $address->state = $request->state;
+        $address->zipcode = $request->zipcode;
+        $address->country = $request->country;
+        $address->default = $default;
+        $address->save();
+
+        return redirect( '/'.config('shoppe.slugs.customer_account', 'customer-account').'/addresses' )->with('success', 'Address created.');
+
+    }
+
     public function cards()
     {
         $data = new \stdClass;
@@ -86,9 +247,118 @@ class CustomerController extends Controller
         $data->keywords = '';
         $data->meta_description = '';
 
+        $shippingConnector = app('Shipping');
+        $taxesConnector = app('Taxes');
 
+        $data->payment_connector = $this->Payment->connector_name;
+        $data->tax_connector = $taxesConnector->connector_name;
+        $data->shipping_connector = $shippingConnector->connector_name;
+
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+
+        if( !$customer ){
+            return [
+                'success' => false, 'message' => 'User does not have a customer account'
+            ];
+        }
+
+        $paymentTypes = $this->Payment->getStoredPaymentTypes($customer->customer_id);
+        $data->payment_types = $paymentTypes;
 
         return view( 'shoppe::customer.cards' , [ 'data' => $data ]);
+    }
+
+    public function cardsUpdate(Request $request, $id)
+    {
+
+        $validatedData = $request->validate(
+            [
+                'exp_month' => 'required|numeric',
+                'exp_year' => 'required|numeric',
+                'zipcode' => 'required|max:20',
+            ]
+        );
+
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+
+        if( !$customer ){
+            return redirect()->back()->with('error', 'Customer not found.');
+        }
+
+        $fields = [
+            'zipcode' => $request->zipcode,
+            'exp_month' => $request->exp_month,
+            'exp_year' => $request->exp_year
+        ];
+
+        $update = $this->Payment->updateStoredPaymentType($customer->customer_id, $id, $fields);
+
+        if( $update['success'] ){
+            return redirect()->back()->with('success', 'Payment type updated.' );
+        } else {
+            return redirect()->back()->with('error', $update['message'] );
+        }
+    }
+
+    public function cardsCreate(Request $request)
+    {
+
+        $validatedData = $request->validate(
+            [
+                'token' => 'required',
+            ]
+        );
+
+        $token = $request->token;
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+
+        if( !$customer ){
+            return redirect()->back()->with('error', 'Customer not found. You must make a purchase first before you can add a payment type.');
+        }
+
+        $added = $this->Payment->createStoredPaymentType($customer->customer_id, $token);
+
+        if( $added['success'] ){
+            return redirect()->back()->with('success', 'Payment type added.' );
+        } else {
+            return redirect()->back()->with('error', $added['message'] );
+        }
+    }
+
+    public function cardsDelete($id)
+    {
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+
+        if( !$customer ){
+            return redirect()->back()->with('error', 'Customer not found.');
+        }
+
+        $delete = $this->Payment->deleteStoredPaymentType($customer->customer_id, $id);
+
+        if( $delete['success'] ){
+            return redirect()->back()->with('success', 'Payment type deleted.' );
+        } else {
+            return redirect()->back()->with('error', $delete['message'] );
+        }
+
+    }
+
+    public function cardsDefault($id)
+    {
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+
+        if( !$customer ){
+            return redirect()->back()->with('error', 'Customer not found.');
+        }
+
+        $default = $this->Payment->defaultStoredPaymentType($customer->customer_id, $id);
+
+        if( $default['success'] ){
+            return redirect()->back()->with('success', 'Payment type default set.' );
+        } else {
+            return redirect()->back()->with('error', $default['message'] );
+        }
+
     }
 
 }

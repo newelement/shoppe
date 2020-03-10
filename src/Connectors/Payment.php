@@ -22,6 +22,8 @@ class Payment
         $transactionId = '';
         $message = '';
         $charge = '';
+        $source = $payment['token'];
+        $chargeData = [];
 
         $amount = $this->stripeAmount($payment['amount']);
 
@@ -34,11 +36,33 @@ class Payment
                 try{
 
                     $customer = \Stripe\Customer::create([
-                        'source' => $payment['token'],
                         'email' => $payment['email'],
                     ]);
 
                     $customerId = $customer->id;
+
+                    $createSource = \Stripe\Customer::createSource(
+                        $customerId,
+                        ['source' => $payment['token'] ]
+                    );
+
+                    $source = $createSource->id;
+
+                } catch( \Exception $e ){
+                    $error = true;
+                    $message = $e->getMessage();
+                }
+
+            } else {
+
+                try{
+
+                    $createSource = \Stripe\Customer::createSource(
+                        $customerId,
+                        ['source' => $payment['token'] ]
+                    );
+
+                    $source = $createSource->id;
 
                 } catch( \Exception $e ){
                     $error = true;
@@ -58,6 +82,7 @@ class Payment
                 'amount' => $amount,
                 'currency' => config('shoppe.currency', 'USD'),
                 'customer' => $customerId,
+                'source' => $source
             ];
 
         } else {
@@ -65,15 +90,18 @@ class Payment
             $chargeData = [
               'amount' => $amount,
               'currency' => config('shoppe.currency', 'USD'),
-              'source' => $payment['token'],
+              'source' => $source,
               'description' => $payment['description'],
             ];
+        }
+
+        if( $payment['is_stored_payment'] ){
+            $chargeData['customer'] = $this->getCustomerId();
         }
 
         try{
 
             $charge = \Stripe\Charge::create( $chargeData );
-
             $transactionId = $charge->id;
             $message = 'Successful';
 
@@ -82,29 +110,44 @@ class Payment
             $code = $e->getError()->code;
             $message = $code.': '.$e->getError()->message;
         } catch (\Stripe\Exception\RateLimitException $e) {
-            $message = 'Too many API requests.';
+            $message = 'Payment service: Too many API requests.';
             $error = true;
         } catch (\Stripe\Exception\InvalidRequestException $e) {
-            $message = 'Invalid API parameters.';
+            $message = 'Payment service: Invalid API parameters.';
             $error = true;
         } catch (\Stripe\Exception\AuthenticationException $e) {
-            $message = 'API auth failed.';
+            $message = 'Payment service: API auth failed.';
             $error = true;
         } catch (\Stripe\Exception\ApiConnectionException $e) {
-            $message = 'Could not communicate with Stripe API. Network error.';
+            $message = 'Payment service: Could not communicate with Stripe API. Network error.';
             $error = true;
         } catch (\Stripe\Exception\ApiErrorException $e) {
-            $message = 'There was a problem with the Stripe API. Generic.';
+            $message = 'Payment service: There was a problem with the Stripe API.';
             $error = true;
         } catch (Exception $e) {
-            $message = 'There was a problem with the Stripe API. Other';
+            $message = 'Payment service: There was a problem with the Stripe API. Other.';
             $error = true;
         }
 
-        $arr = ['transaction_id' => $transactionId, 'success' => $error? false : true, 'message' => $message, 'payload' => $charge ];
+        $arr = [
+            'transaction_id' => $transactionId,
+            'success' => $error? false : true,
+            'message' => $message,
+            'payload' => $charge
+        ];
 
         if( $payment['save_card'] ){
             $arr['customer_id'] = $customerId;
+            $arr['billing_id'] = $source;
+            $arr['last_four'] = $charge->payment_method_details->card->last4;
+            $arr['card_brand'] = $charge->payment_method_details->card->brand;
+            $arr['payment_type'] = $charge->payment_method_details->type;
+        }
+
+        if( $payment['is_stored_payment'] ){
+            $arr['last_four'] = $charge->payment_method_details->card->last4;
+            $arr['card_brand'] = $charge->payment_method_details->card->brand;
+            $arr['payment_type'] = $charge->payment_method_details->type;
         }
 
         return $arr;
@@ -184,6 +227,126 @@ class Payment
         }
 
         return ['success' => $success, 'message' => $message, 'transaction_id' => $transactionId, 'payload' => $refund ];
+    }
+
+    public function getStoredPaymentTypes($customerId)
+    {
+        $message = 'Successful';
+        $success = true;
+        $payment_types = [];
+
+        try{
+
+            $customer = \Stripe\Customer::retrieve($customerId);
+
+            $cards = \Stripe\Customer::allSources(
+                $customerId,
+                [ 'object' => 'card' ]
+            );
+
+            foreach( $cards->data as $card ){
+                $default = $card->id === $customer->default_source? true : false;
+                $payment_types[] = [
+                    'type' => 'card',
+                    'id' => $card->id,
+                    'card_brand' => $card->brand,
+                    'exp_month' => $card->exp_month,
+                    'exp_year' => $card->exp_year,
+                    'name' => $card->name,
+                    'zip' => $card->address_zip,
+                    'last_four' => $card->last4,
+                    'default' => $default
+                ];
+            }
+
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        return ['success' => $success, 'message' => $message, 'items' => $payment_types];
+    }
+
+    public function updateStoredPaymentType($customerId, $billingId, $fields)
+    {
+        $message = 'Successful';
+        $success = true;
+        $payment_types = [];
+
+        try{
+
+            \Stripe\Customer::updateSource(
+                $customerId,
+                $billingId,
+                [
+                    'address_zip' => $fields['zipcode'],
+                    'exp_month' => $fields['exp_month'],
+                    'exp_year' => $fields['exp_year'],
+                ]
+            );
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        return ['success' => $success, 'message' => $message ];
+    }
+
+    public function createStoredPaymentType($customerId, $token)
+    {
+        $message = 'Successful';
+        $success = true;
+        $payment_types = [];
+
+        try{
+
+            \Stripe\Customer::createSource(
+              $customerId,
+              ['source' => $token]
+            );
+
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        return ['success' => $success, 'message' => $message ];
+    }
+
+    public function deleteStoredPaymentType($customerId, $billingId)
+    {
+        $message = 'Successful';
+        $success = true;
+
+        try{
+            $delete = \Stripe\Customer::deleteSource(
+                $customerId,
+                $billingId
+            );
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        return ['success' => $success, 'message' => $message ];
+    }
+
+    public function defaultStoredPaymentType($customerId, $billingId)
+    {
+        $message = 'Successful';
+        $success = true;
+
+        try{
+            \Stripe\Customer::update(
+              $customerId,
+              [ 'default_source' => $billingId ]
+            );
+        } catch( \Exception $e ){
+            $message = $e->getMessage();
+            $success = false;
+        }
+
+        return ['success' => $success, 'message' => $message ];
     }
 
     private function stripeAmount($amount)

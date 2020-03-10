@@ -74,6 +74,9 @@
                                 <a href="#" class="view-payment-details-btn" data-transaction-id="{{ $order->transaction_id }}" role="button">View Payment Details</a>
                             </p>
                             <div class="payment-details">
+
+                                &mdash; {{ $order->last_four }} / {{ $order->card_brand }}
+
                             </div>
                         </div>
                     </div>

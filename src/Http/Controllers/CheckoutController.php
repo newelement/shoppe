@@ -9,6 +9,7 @@ use Newelement\Shoppe\Models\AddressBook;
 use Newelement\Shoppe\Models\Customer;
 use Newelement\Shoppe\Models\Order;
 use Newelement\Shoppe\Models\OrderLine;
+use Newelement\Shoppe\Models\PaymentType;
 use Newelement\Shoppe\Traits\Transactions;
 use Newelement\Shoppe\Traits\ShippingService;
 use Newelement\Shoppe\Traits\TaxService;
@@ -47,12 +48,23 @@ class CheckoutController extends Controller
                                     ->orderBy('address', 'desc')
                                     ->get();
 
+        $data->payment_types = [];
+
+        $customer = Customer::where('user_id', auth()->user()->id )->first();
+        if( $customer ){
+            $paymentTypes = $paymentConnector->getStoredPaymentTypes($customer->customer_id);
+            if( $paymentTypes['success'] ){
+                $data->payment_types = $paymentTypes['items'];
+            }
+        }
+
         if( $request->ajax() ){
             return response()->json($data);
         } else {
             return view('shoppe::checkout', ['data' => $data]);
         }
     }
+
 
     /*
     * PROCESS CHECKOUT
@@ -76,7 +88,8 @@ class CheckoutController extends Controller
         ];
 
         if( $paymentConnector->connector_name === 'shoppe_stripe' ){
-            $validateArr['token'] = 'required';
+            $validateArr['saved_payment'] = 'required_without:token';
+            $validateArr['token'] = 'required_without:saved_payment';
         }
 
         if( $eligibleShipping ){
@@ -103,16 +116,18 @@ class CheckoutController extends Controller
         $taxableTotal = $cart['taxable_total'];
         $refId = sha1( uniqid().microtime().$subTotal.$email.env('APP_KEY') );
         $user = Customer::createOrGet( $billing_name, $email );
-
+        $customerId = false;
 
         // Get request params
-        $token = $request->token;
+        $isStoredPayment = $request->saved_payment? true : false;
+        $token = $request->token? $request->token : $request->saved_payment;
         $saveCard = $request->save_card? true : false;
 
         // Start the checkout array
         $checkout['customer_name'] = $billing_name;
         $checkout['email'] = $email;
         $checkout['token'] = $token;
+        $checkout['is_stored_payment'] = $isStoredPayment;
         $checkout['ref_id'] = $refId;
         $checkout['save_card'] = $saveCard;
         $checkout['description'] = $refId;
@@ -148,7 +163,7 @@ class CheckoutController extends Controller
 
             if( !$estimatedRate['success'] ){
                 if( $request->ajax() ){
-                    return response()->json(['success' => false, 'message' => $estimatedRate['message']], 500);
+                    return response()->json(['success' => false, 'message' => $estimatedRate['message'], 'failed_on' => 'shipping'], 500);
                 } else {
                     return back()->with('error', $estimatedRate['message']);
                 }
@@ -165,7 +180,6 @@ class CheckoutController extends Controller
 
         }
 
-        return response()->json(['success' => false, 'message' => ''], 500);
 
 
         /*
@@ -178,7 +192,7 @@ class CheckoutController extends Controller
 
         if( !$taxes['success'] ){
             if( $request->ajax() ){
-                return response()->json(['success' => false, 'message' => $taxes['message']], 500);
+                return response()->json(['success' => false, 'message' => $taxes['message'], 'failed_on' => 'taxes'], 500);
             } else {
                 return back()->with('error', $taxes['message']);
             }
@@ -205,7 +219,7 @@ class CheckoutController extends Controller
 
         if( !$charge['success'] ){
             if( $request->ajax() ){
-                return response()->json(['success' => false, 'message' => $charge['message']], 500);
+                return response()->json(['success' => false, 'message' => $charge['message'], 'failed_on' => 'payment'], 500);
             } else {
                 return back()->with('error', $charge['message']);
             }
@@ -222,9 +236,19 @@ class CheckoutController extends Controller
         */
         if( $saveCard ){
             $checkout['customer_id'] = $charge['customer_id'];
-            $savedCard = Customer::saveCard( $checkout, $user );
+            $checkout['last_four'] = $charge['last_four'];
+            $checkout['card_brand'] = $charge['card_brand'];
+            $checkout['payment_type'] = $charge['payment_type'];
+            $checkout['billing_id'] = $charge['billing_id'];
+            $savedCustomer = Customer::saveCustomer( $checkout, $user );
+            $savedPaymentType = PaymentType::savePayment( $checkout, $user );
         }
 
+        if( $isStoredPayment ){
+            $checkout['last_four'] = $charge['last_four'];
+            $checkout['card_brand'] = $charge['card_brand'];
+            $checkout['payment_type'] = $charge['payment_type'];
+        }
 
 
         /*
@@ -251,6 +275,11 @@ class CheckoutController extends Controller
             $order->shipping_amount = isset( $checkout['shipping_amount'] )? $checkout['shipping_amount'] : 0.00;
             $order->tax_amount = isset( $checkout['tax_amount'] )? $checkout['tax_amount'] : 0.00;
             $order->tax_rate = isset( $checkout['tax_rate'] )? $checkout['tax_rate'] : 0.00;
+            if( $saveCard || $isStoredPayment ){
+                $order->last_four = isset($checkout['last_four'])? $checkout['last_four'] : null;
+                $order->card_brand = isset($checkout['card_brand'])? $checkout['card_brand'] : null;
+                $order->payment_type = isset($checkout['payment_type'])? $checkout['payment_type'] : null;
+            }
             $order->discount_code = isset( $checkout['discount_code'] )? $checkout['discount_code'] : null;
             $order->discount_amount = isset( $checkout['discount_amount'] )? $checkout['discount_amount'] : 0.00;
             $order->created_by = Auth::check()? Auth::user()->id : $user->id;

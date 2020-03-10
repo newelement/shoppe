@@ -20,7 +20,7 @@ class Customer extends Model
         'payment_connector'
     ];
 
-    public static function saveCard( $checkout, $user )
+    public static function saveCustomer( $checkout, $user )
     {
         $insert = self::updateOrCreate(
            ['user_id' => $user->id,],
