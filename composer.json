@@ -2,8 +2,8 @@
     "name": "newelement/shoppe",
     "description": "A Laravel CMS eCommerce package",
     "keywords": ["laravel", "cms", "admin", "shop", "ecommerce"],
-    "license": "GNU GPLv2",
-    "homepage": "https://newelementdesigns.com/neutrino/",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://neutrinocms.com",
     "support": {
         "issues": "https://github.com/newelement/shoppe/issues",
         "source": "https://github.com/newelement/shoppe"
