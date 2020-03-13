@@ -68,8 +68,6 @@ Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function ()
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/delete', ['uses' => $namespacePrefix.'CustomerController@cardsDelete', 'as' => 'customer.cards']);
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/default', ['uses' => $namespacePrefix.'CustomerController@cardsDefault', 'as' => 'customer.cards']);
     Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards', ['uses' => $namespacePrefix.'CustomerController@cardsCreate', 'as' => 'customer.cards']);
-
-
 });
 
 Route::group(['prefix' => 'api', 'as' => 'shoppe.'], function () use ( $namespacePrefix ) {

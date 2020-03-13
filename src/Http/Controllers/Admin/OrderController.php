@@ -7,6 +7,7 @@ use Newelement\Shoppe\Models\Order;
 use Newelement\Shoppe\Models\OrderLine;
 use Newelement\Shoppe\Models\OrderNote;
 use Newelement\Shoppe\Traits\Transactions;
+use Newelement\Neutrino\Models\ActivityLog;
 use Auth;
 
 class OrderController extends Controller
@@ -104,6 +105,17 @@ class OrderController extends Controller
         $order->status = $status;
         $order->save();
 
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'order.status',
+            'object_type' => 'order',
+            'object_id' => $order->id,
+            'content' => 'Status was updated to '.$order->status_formatted.' on order '.$order->id,
+            'log_level' => 0,
+            'created_by' => auth()->user()->id,
+            'created_at' => now()
+        ]);
+
         if( $request->ajax() ){
             return response()->json($order);
         } else {
@@ -178,6 +190,16 @@ class OrderController extends Controller
 
                 if( !$taxRefund['success'] ){
                     // Log it, possibly email it
+                    ActivityLog::insert([
+                        'activity_package' => 'shoppe',
+                        'activity_group' => 'order.tax.refund',
+                        'object_type' => 'order',
+                        'object_id' => $order->id,
+                        'content' => $taxRefund['message'],
+                        'log_level' => 5,
+                        'created_by' => auth()->user()->id,
+                        'created_at' => now()
+                    ]);
                 }
 
             }
@@ -189,6 +211,16 @@ class OrderController extends Controller
             // Notify user order was refunded
 
             // Log
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'order.refund',
+                'object_type' => 'order',
+                'object_id' => $order->id,
+                'content' => 'Order '.$order->id.' was refunded.',
+                'log_level' => 0,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
 
             if( $request->ajax() ){
                 return response()->json(['success' => $response['success'], 'message' => 'Successful']);
@@ -197,6 +229,18 @@ class OrderController extends Controller
             }
 
         } else {
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'order.refund',
+                'object_type' => 'order',
+                'object_id' => $order->id,
+                'content' => 'Order '.$order->id.' was NOT refunded. '.$response['message'],
+                'log_level' => 5,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
+
             if( $request->ajax() ){
                 return response()->json(['success' => $response['success'], 'message' => $response['message']], 500);
             } else {
@@ -330,10 +374,30 @@ class OrderController extends Controller
                 $taxRefund = $taxConnector->createRefund( $arr );
 
                 if( !$taxRefund['success'] ){
-                    // Log it, possibly email it
+                    ActivityLog::insert([
+                        'activity_package' => 'shoppe',
+                        'activity_group' => 'order.tax.refund',
+                        'object_type' => 'order',
+                        'object_id' => $order->id,
+                        'content' => $taxRefund['message'],
+                        'log_level' => 5,
+                        'created_by' => auth()->user()->id,
+                        'created_at' => now()
+                    ]);
                 }
 
             }
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'order.line.refund',
+                'object_type' => 'order',
+                'object_id' => $order->id,
+                'content' => 'Refund on order '.$order->id.', line '.$orderLine->id.' was successful. Amount: '.$amount,
+                'log_level' => 0,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
 
             if( $request->ajax() ){
                 $request->session()->flash('success', 'Refund was successful.');
@@ -342,6 +406,18 @@ class OrderController extends Controller
                 return redirect()->route('shoppe.orders', [$order])->with('success', $response['message']);
             }
         } else {
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'order.line.refund',
+                //'object_type' => 'cart',
+                //'object_id' => $cart->id,
+                'content' => $response['message'],
+                'log_level' => 5,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
+
             if( $request->ajax() ){
                 return response()->json(['success' => $response['success'], 'message' => $response['message']], 500);
             } else {
@@ -380,6 +456,17 @@ class OrderController extends Controller
         $note->user = $user->name;
         $note->created = $note->created_at->timezone(config('neutrino.timezone'))->format('M j, Y g:i a');
 
+        ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'order.note',
+                'object_type' => 'order',
+                'object_id' => $order->id,
+                'content' => 'Note created on order '.$order->id,
+                'log_level' => 0,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
+
         if( $request->ajax() ){
             return response()->json([ 'note' => $note ]);
         } else {
@@ -390,8 +477,24 @@ class OrderController extends Controller
 
     public function resendReceipt(Request $request, Order $order)
     {
+        if( !$order ){
+            abort(404);
+        }
+
         $email = $order->user->email;
         $sent = true;
+
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'order.receipt',
+            'object_type' => 'order',
+            'object_id' => $order->id,
+            'content' => 'Resent receipt on order '.$order->id,
+            'log_level' => 0,
+            'created_by' => auth()->user()->id,
+            'created_at' => now()
+        ]);
+
         return response()->json(['sent' => $sent]);
     }
 

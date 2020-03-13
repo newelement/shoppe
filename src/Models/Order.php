@@ -17,6 +17,7 @@ class Order extends Model
 
     protected $searchable = [
         'columns' => [
+            'id' => 1,
             'status' => 7,
             'created_by' => 5,
             'created_at' => 5

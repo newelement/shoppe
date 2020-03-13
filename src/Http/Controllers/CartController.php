@@ -8,6 +8,9 @@ use Newelement\Shoppe\Models\Product;
 use Newelement\Neutrino\Models\Page;
 use Newelement\Shoppe\Models\ProductVariation;
 use Newelement\Shoppe\Traits\CartData;
+use Newelement\Shoppe\Events\ItemAddedToCart;
+use Newelement\Shoppe\Events\ItemDeletedFromCart;
+use Newelement\Neutrino\Models\ActivityLog;
 use Auth;
 
 class CartController extends Controller
@@ -99,6 +102,19 @@ class CartController extends Controller
 
         }
 
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'cart',
+            'object_type' => 'cart',
+            'object_id' => $cart->id,
+            'content' => $product->title.' added to cart. '.json_encode($variationSets),
+            'log_level' => 0,
+            'created_by_string' => $cartUser,
+            'created_at' => now()
+        ]);
+
+        event(new ItemAddedToCart($cart));
+
         if( $request->ajax() ){
             return response()->json(['success' => true]);
         } else {
@@ -128,6 +144,17 @@ class CartController extends Controller
         $code = $update ? 200 : 404;
         $message = $update ? 'Item qty updated.' : 'Item qty was not updated.';
 
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'cart.update',
+            'object_type' => 'cart',
+            'object_id' => $id,
+            'content' => $message,
+            'log_level' => 0,
+            'created_by_string' => $cartUser,
+            'created_at' => now()
+        ]);
+
         if( $request->ajax() ){
             return response()->json(['success' => $success, 'message' => $message], $code);
         } else {
@@ -139,11 +166,24 @@ class CartController extends Controller
     {
         $id = $request->id;
         $cartUser = $this->getCartUser();
-        $delete = Cart::where([ 'user_id' => $cartUser, 'id' => $id ])->orWhere(['temp_user_id' => $cartUser, 'id' => $id ])->delete();
+        $cart = Cart::where([ 'user_id' => $cartUser, 'id' => $id ])->orWhere(['temp_user_id' => $cartUser, 'id' => $id ]);
+        event(new ItemDeletedFromCart($cart));
+        $delete = $cart->delete();
         $alert = $delete ? 'success' : 'error';
         $success = $delete ? true : false;
         $code = $delete ? 200 : 404;
         $message = $delete ? 'Item removed from cart.' : 'Item was not removed from cart.';
+
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'cart.delete',
+            'object_type' => 'cart',
+            'object_id' => $id,
+            'content' => $message,
+            'log_level' => 0,
+            'created_by_string' => $cartUser,
+            'created_at' => now()
+        ]);
 
         if( $request->ajax() ){
             return response()->json(['success' => $success, 'message' => $message], $code);

@@ -14,6 +14,8 @@ use Newelement\Shoppe\Traits\Transactions;
 use Newelement\Shoppe\Traits\ShippingService;
 use Newelement\Shoppe\Traits\TaxService;
 use Illuminate\Support\Facades\Hash;
+use Newelement\Shoppe\Events\OrderCreated;
+use Newelement\Neutrino\Models\ActivityLog;
 use Auth;
 
 class CheckoutController extends Controller
@@ -162,6 +164,18 @@ class CheckoutController extends Controller
             $checkout['shipping_connector'] = $shippingConnector->connector_name;
 
             if( !$estimatedRate['success'] ){
+
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.shipping',
+                    //'object_type' => 'cart',
+                    //'object_id' => $cart->id,
+                    'content' => $estimatedRate['message'],
+                    'log_level' => 5,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
+
                 if( $request->ajax() ){
                     return response()->json(['success' => false, 'message' => $estimatedRate['message'], 'failed_on' => 'shipping'], 500);
                 } else {
@@ -191,6 +205,18 @@ class CheckoutController extends Controller
         $checkout['tax_connector'] = $taxesConnector->connector_name;
 
         if( !$taxes['success'] ){
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'cart.taxes',
+                //'object_type' => 'cart',
+                //'object_id' => $cart->id,
+                'content' => $taxes['message'],
+                'log_level' => 5,
+                'created_by' => $user->id,
+                'created_at' => now()
+            ]);
+
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' => $taxes['message'], 'failed_on' => 'taxes'], 500);
             } else {
@@ -218,6 +244,18 @@ class CheckoutController extends Controller
         $checkout['payment_connector'] = $paymentConnector->connector_name;
 
         if( !$charge['success'] ){
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'cart.payment',
+                //'object_type' => 'cart',
+                //'object_id' => $cart->id,
+                'content' => $charge['message'],
+                'log_level' => 5,
+                'created_by' => $user->id,
+                'created_at' => now()
+            ]);
+
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' => $charge['message'], 'failed_on' => 'payment'], 500);
             } else {
@@ -285,7 +323,30 @@ class CheckoutController extends Controller
             $order->created_by = Auth::check()? Auth::user()->id : $user->id;
             $order->updated_by = Auth::check()? Auth::user()->id : $user->id;
             $order->save();
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'cart.order',
+                'object_type' => 'order',
+                'object_id' => $order->id,
+                'content' => 'Order created',
+                'log_level' => 0,
+                'created_by' => $user->id,
+                'created_at' => now()
+            ]);
+
         } catch ( \Exception $e  ){
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'cart.order',
+                //'object_type' => 'cart',
+                //'object_id' => $cart->id,
+                'content' => $e->getMessage(),
+                'log_level' => 5,
+                'created_by' => $user->id,
+                'created_at' => now()
+            ]);
 
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
@@ -318,6 +379,18 @@ class CheckoutController extends Controller
             $orderLines = new OrderLine;
             OrderLine::insert($lines);
         } catch ( \Exception $e ){
+
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'cart.order.line',
+                //'object_type' => 'cart',
+                //'object_id' => $cart->id,
+                'content' => $e->getMessage(),
+                'log_level' => 5,
+                'created_by' => $user->id,
+                'created_at' => now()
+            ]);
+
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
             } else {
@@ -352,6 +425,8 @@ class CheckoutController extends Controller
 
         // Empty the user's cart
         $this->deleteUserCart();
+
+        event(new OrderCreated($order));
 
         if( $request->ajax() ){
             return response()->json($checkout);

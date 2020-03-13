@@ -262,7 +262,7 @@
 
                 <h3 style="margin-bottom: 12px" class="text-center">Order Notes</h3>
                 @if( count($order->orderNotes) === 0 )
-                <small class="text-center">There are no notes yet.</small>
+                <small class="no-notes-msg text-center">There are no notes yet.</small>
                 @endif
 
                 <div class="order-notes-list">

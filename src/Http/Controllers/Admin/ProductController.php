@@ -19,6 +19,7 @@ use Newelement\Shoppe\Models\ProductAttribute;
 use Newelement\Shoppe\Models\ProductCategory;
 use Newelement\Shoppe\Models\ProductVariation;
 use Newelement\Shoppe\Models\ProductVariationAttribute;
+use Newelement\Neutrino\Models\ActivityLog;
 
 class ProductController extends Controller
 {
@@ -54,40 +55,52 @@ class ProductController extends Controller
            'title' => 'required|max:255',
         ]);
 
-        $product = new Product();
-        $product->title = $request->title;
-        $product->slug = toSlug($request->slug, 'product');
-        $product->product_type = $request->product_type;
-        $product->product_file = $request->product_file;
-        $product->role_id = $request->role_id;
-        $product->content = htmlentities($request->content);
-        $product->short_content = htmlentities($request->short_content);
-        $product->specs = htmlentities($request->specs);
-        $product->cost = $request->cost;
-        $product->price = $request->price;
-        $product->contact_price = $request->contact_price ? 1 : 0;
-        $product->contact_avail = $request->contact_avail ? 1 : 0;
-        $product->sale_price = $request->sale_price;
-        $product->is_taxable = $request->is_taxable ? 1 : 0;
-        $product->sku = $request->sku;
-        $product->mfg_part_number = $request->mfg_part_number;
-        $product->stock = $request->stock;
-        $product->min_stock = $request->min_stock;
-        $product->monitor_stock = $request->monitor_stock ? 1 : 0;
-        $product->weight = $request->weight;
-        $product->width = $request->width;
-        $product->height = $request->height;
-        $product->depth = $request->depth;
-        $product->shipping_rate_type = $request->shipping_rate_type;
-        $product->shipping_rate = $request->shipping_rate;
-        $product->keywords = $request->keywords;
-        $product->meta_description = $request->meta_description;
-        $product->status = $request->status;
-        $product->social_image = $request->social_image;
-        $product->save();
+        try{
+            $product = new Product();
+            $product->title = $request->title;
+            $product->slug = toSlug($request->slug, 'product');
+            $product->product_type = $request->product_type;
+            $product->product_file = $request->product_file;
+            $product->role_id = $request->role_id;
+            $product->content = htmlentities($request->content);
+            $product->short_content = htmlentities($request->short_content);
+            $product->specs = htmlentities($request->specs);
+            $product->cost = $request->cost;
+            $product->price = $request->price;
+            $product->contact_price = $request->contact_price ? 1 : 0;
+            $product->contact_avail = $request->contact_avail ? 1 : 0;
+            $product->sale_price = $request->sale_price;
+            $product->is_taxable = $request->is_taxable ? 1 : 0;
+            $product->sku = $request->sku;
+            $product->mfg_part_number = $request->mfg_part_number;
+            $product->stock = $request->stock;
+            $product->min_stock = $request->min_stock;
+            $product->monitor_stock = $request->monitor_stock ? 1 : 0;
+            $product->weight = $request->weight;
+            $product->width = $request->width;
+            $product->height = $request->height;
+            $product->depth = $request->depth;
+            $product->shipping_rate_type = $request->shipping_rate_type;
+            $product->shipping_rate = $request->shipping_rate;
+            $product->keywords = $request->keywords;
+            $product->meta_description = $request->meta_description;
+            $product->status = $request->status;
+            $product->social_image = $request->social_image;
+            $product->save();
+        } catch ( \Exception $e ) {
 
-        if( !$product ){
-            return response()->back()->with('error', 'There was an problem entering a new product.');
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'product.create',
+                //'object_type' => 'product',
+                //'object_id' => $product->id,
+                'content' => 'Error creating product. '.$e->getMessage(),
+                'log_level' => 5,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
+
+            return redirect()->back()->with('error', 'There was an problem entering a new product.');
         }
 
         // Featured Image
@@ -167,31 +180,50 @@ class ProductController extends Controller
 
                 $variationData = $variations[$varAttrId];
 
-                $variation = new ProductVariation();
-                $variation->product_id = $product->id;
-                $variation->attribute_set = json_encode( $attrSetArr );
-                $variation->attribute_values = '{}';
-
-                // The variation row
-                /*
-                    This will be the matching row of overrides if a user chooses a set of attributes from a dropdown
-                */
-                $variation->image = $variationData['image'];
-                $variation->desc = $variationData['desc'];
-                $variation->cost = $variationData['cost'];
-                $variation->price = $variationData['price'];
-                $variation->sale_price = $variationData['sale_price'];
-                $variation->sku = $variationData['sku'];
-                $variation->mfg_part_number = $variationData['mfg_part_number'];
-                $variation->stock = $variationData['stock'];
-                $variation->weight = $variationData['weight'];
-                $variation->width = $variationData['width'];
-                $variation->height = $variationData['height'];
-                $variation->depth = $variationData['depth'];
-                $variation->save();
+                try{
+                    $variation = new ProductVariation();
+                    $variation->product_id = $product->id;
+                    $variation->attribute_set = json_encode( $attrSetArr );
+                    $variation->attribute_values = '{}';
+                    $variation->image = $variationData['image'];
+                    $variation->desc = $variationData['desc'];
+                    $variation->cost = $variationData['cost'];
+                    $variation->price = $variationData['price'];
+                    $variation->sale_price = $variationData['sale_price'];
+                    $variation->sku = $variationData['sku'];
+                    $variation->mfg_part_number = $variationData['mfg_part_number'];
+                    $variation->stock = $variationData['stock'];
+                    $variation->weight = $variationData['weight'];
+                    $variation->width = $variationData['width'];
+                    $variation->height = $variationData['height'];
+                    $variation->depth = $variationData['depth'];
+                    $variation->save();
+                } catch( \Exception $e ) {
+                    ActivityLog::insert([
+                        'activity_package' => 'shoppe',
+                        'activity_group' => 'product.variation',
+                        'object_type' => 'product',
+                        'object_id' => $product->id,
+                        'content' => 'Product variation create failed. '.$e->getMessage(),
+                        'log_level' => 5,
+                        'created_by' => auth()->user()->id,
+                        'created_at' => now()
+                    ]);
+                }
 
             }
         }
+
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'product.create',
+            'object_type' => 'product',
+            'object_id' => $product->id,
+            'content' => 'Product created',
+            'log_level' => 0,
+            'created_by' => auth()->user()->id,
+            'created_at' => now()
+        ]);
 
         return redirect('/admin/product/'.$product->id)->with('success', 'Product created.');
 
@@ -221,36 +253,51 @@ class ProductController extends Controller
             abort(404);
         }
 
-        $product->title = $request->title;
-        $product->slug = $product->slug === $request->slug? $request->slug : toSlug($request->slug, 'product');
-        $product->product_type = $request->product_type;
-        $product->product_file = $request->product_file;
-        $product->role_id = $request->role_id;
-        $product->content = htmlentities($request->content);
-        $product->short_content = htmlentities($request->short_content);
-        $product->specs = htmlentities($request->specs);
-        $product->cost = $request->cost;
-        $product->price = $request->price;
-        $product->contact_price = $request->contact_price ? 1 : 0;
-        $product->contact_avail = $request->contact_avail ? 1 : 0;
-        $product->sale_price = $request->sale_price;
-        $product->is_taxable = $request->is_taxable ? 1 : 0;
-        $product->sku = $request->sku;
-        $product->mfg_part_number = $request->mfg_part_number;
-        $product->stock = $request->stock;
-        $product->min_stock = $request->min_stock;
-        $product->monitor_stock = $request->monitor_stock ? 1 : 0;
-        $product->weight = $request->weight;
-        $product->width = $request->width;
-        $product->height = $request->height;
-        $product->depth = $request->depth;
-        $product->shipping_rate_type = $request->shipping_rate_type;
-        $product->shipping_rate = $request->shipping_rate;
-        $product->keywords = $request->keywords;
-        $product->meta_description = $request->meta_description;
-        $product->status = $request->status;
-        $product->social_image = $request->social_image;
-        $product->save();
+        try{
+            $product->title = $request->title;
+            $product->slug = $product->slug === $request->slug? $request->slug : toSlug($request->slug, 'product');
+            $product->product_type = $request->product_type;
+            $product->product_file = $request->product_file;
+            $product->role_id = $request->role_id;
+            $product->content = htmlentities($request->content);
+            $product->short_content = htmlentities($request->short_content);
+            $product->specs = htmlentities($request->specs);
+            $product->cost = $request->cost;
+            $product->price = $request->price;
+            $product->contact_price = $request->contact_price ? 1 : 0;
+            $product->contact_avail = $request->contact_avail ? 1 : 0;
+            $product->sale_price = $request->sale_price;
+            $product->is_taxable = $request->is_taxable ? 1 : 0;
+            $product->sku = $request->sku;
+            $product->mfg_part_number = $request->mfg_part_number;
+            $product->stock = $request->stock;
+            $product->min_stock = $request->min_stock;
+            $product->monitor_stock = $request->monitor_stock ? 1 : 0;
+            $product->weight = $request->weight;
+            $product->width = $request->width;
+            $product->height = $request->height;
+            $product->depth = $request->depth;
+            $product->shipping_rate_type = $request->shipping_rate_type;
+            $product->shipping_rate = $request->shipping_rate;
+            $product->keywords = $request->keywords;
+            $product->meta_description = $request->meta_description;
+            $product->status = $request->status;
+            $product->social_image = $request->social_image;
+            $product->save();
+        } catch ( \Exception $e ){
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'product.update',
+                'object_type' => 'product',
+                'object_id' => $product->id,
+                'content' => 'Product update failed',
+                'log_level' => 5,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
+
+            return redirect()->back()->with('error', 'Product update failed. '.$e->getMessage() );
+        }
 
         // Featured Image
         if( $request->featured_image ){
@@ -334,36 +381,45 @@ class ProductController extends Controller
 
                 $variationData = $variations[$varAttrId];
 
-                $variation = ProductVariation::find($varAttrId);
-                if( !$variation ){
-                    $variation = new ProductVariation;
-                }
-                $variation->product_id = $product->id;
-                $variation->attribute_set = json_encode( $attrSetArr );
+                try{
 
-                $attrValues = [];
-                foreach( $attrSetArr as $attrValue ){
-                    $attrValues[] = $attrValue['value'];
-                }
-                $variation->attribute_values = $attrValues;
+                    $variation = ProductVariation::find($varAttrId);
+                    if( !$variation ){
+                        $variation = new ProductVariation;
+                    }
+                    $variation->product_id = $product->id;
+                    $variation->attribute_set = json_encode( $attrSetArr );
 
-                // The variation row
-                /*
-                    This will be the matching row of overrides if a user chooses a set of attributes from a dropdown
-                */
-                $variation->image = $variationData['image'];
-                $variation->desc = $variationData['desc'];
-                $variation->cost = $variationData['cost'];
-                $variation->price = $variationData['price'];
-                $variation->sale_price = $variationData['sale_price'];
-                $variation->sku = $variationData['sku'];
-                $variation->mfg_part_number = $variationData['mfg_part_number'];
-                $variation->stock = $variationData['stock'];
-                $variation->weight = $variationData['weight'];
-                $variation->width = $variationData['width'];
-                $variation->height = $variationData['height'];
-                $variation->depth = $variationData['depth'];
-                $variation->save();
+                    $attrValues = [];
+                    foreach( $attrSetArr as $attrValue ){
+                        $attrValues[] = $attrValue['value'];
+                    }
+                    $variation->attribute_values = $attrValues;
+                    $variation->image = $variationData['image'];
+                    $variation->desc = $variationData['desc'];
+                    $variation->cost = $variationData['cost'];
+                    $variation->price = $variationData['price'];
+                    $variation->sale_price = $variationData['sale_price'];
+                    $variation->sku = $variationData['sku'];
+                    $variation->mfg_part_number = $variationData['mfg_part_number'];
+                    $variation->stock = $variationData['stock'];
+                    $variation->weight = $variationData['weight'];
+                    $variation->width = $variationData['width'];
+                    $variation->height = $variationData['height'];
+                    $variation->depth = $variationData['depth'];
+                    $variation->save();
+                } catch( \Exception $e ){
+                    ActivityLog::insert([
+                        'activity_package' => 'shoppe',
+                        'activity_group' => 'product.variation',
+                        'object_type' => 'product',
+                        'object_id' => $product->id,
+                        'content' => 'Product variation create failed. '.$e->getMessage(),
+                        'log_level' => 5,
+                        'created_by' => auth()->user()->id,
+                        'created_at' => now()
+                    ]);
+                }
 
             }
         }
@@ -380,6 +436,17 @@ class ProductController extends Controller
     {
         $product = Product::find($id);
         $product->delete();
+
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'product.delete',
+            'object_type' => 'product',
+            'object_id' => $id,
+            'content' => 'Product deleted',
+            'log_level' => 1,
+            'created_by' => auth()->user()->id,
+            'created_at' => now()
+        ]);
 
         return redirect('/admin/products')->with('success', 'Product deleted.');
     }
@@ -400,7 +467,16 @@ class ProductController extends Controller
     {
         $destroyed = Product::onlyTrashed()->where('id', $id)->forceDelete();
         if($destroyed){
-
+            ActivityLog::insert([
+                'activity_package' => 'shoppe',
+                'activity_group' => 'product.destroyed',
+                'object_type' => 'product',
+                'object_id' => $id,
+                'content' => 'Product destroyed',
+                'log_level' => 1,
+                'created_by' => auth()->user()->id,
+                'created_at' => now()
+            ]);
         }
         return redirect('/admin/products-trash')->with('success', 'Product destroyed.');
     }
@@ -412,6 +488,18 @@ class ProductController extends Controller
             $pv = ProductVariation::find($id);
             if( $pv ){
                 $pv->delete();
+
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'product.variation.delete',
+                    'object_type' => 'product',
+                    'object_id' => $id,
+                    'content' => 'Product variation deleted',
+                    'log_level' => 1,
+                    'created_by' => auth()->user()->id,
+                    'created_at' => now()
+                ]);
+
             }
         }
 
