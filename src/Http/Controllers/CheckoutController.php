@@ -36,6 +36,7 @@ class CheckoutController extends Controller
         $paymentConnector = app('Payment');
         $shippingConnector = app('Shipping');
         $taxesConnector = app('Taxes');
+        $inventoryConnector = app('Inventory');
 
         $data->payment_connector = $paymentConnector->connector_name;
         $data->tax_connector = $taxesConnector->connector_name;
@@ -51,6 +52,17 @@ class CheckoutController extends Controller
                                     ->get();
 
         $data->payment_types = [];
+
+        if( getShoppeSetting('manage_stock') ){
+            $checkStock = $inventoryConnector->checkCartStock($cart['items']);
+            if( !$checkStock['success'] ){
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' =>  $checkStock['message'] ], 500);
+                } else {
+                    return redirect()->back()->with('error', $checkStock['message'] );
+                }
+            }
+        }
 
         $customer = Customer::where('user_id', auth()->user()->id )->first();
         if( $customer ){
@@ -79,6 +91,7 @@ class CheckoutController extends Controller
         $paymentConnector = app('Payment');
         $shippingConnector = app('Shipping');
         $taxesConnector = app('Taxes');
+        $inventoryConnector = app('Inventory');
         $cart = $this->getCartItems();
         $items = $cart['items'];
         $eligibleShipping = $cart['eligible_shipping'];
@@ -109,6 +122,18 @@ class CheckoutController extends Controller
         $validatedData = $request->validate(
             $validateArr
         );
+
+        // Check stock
+        if( getShoppeSetting('manage_stock') ){
+            $checkStock = $inventoryConnector->checkCartStock($items);
+            if( !$checkStock['success'] ){
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' =>  $checkStock['message'] ], 500);
+                } else {
+                    return back()->with('error', $checkStock['message'] );
+                }
+            }
+        }
 
 
         $email = $request->email;
@@ -366,6 +391,7 @@ class CheckoutController extends Controller
             $lines[] = [
                 'order_id' => $checkout['order_id'],
                 'product_id' => $item->product->id,
+                'variation_id' => $item->variation_id,
                 'price' => $item->price,
                 'qty' => $item->qty,
                 'image' => $item->image,
@@ -418,8 +444,9 @@ class CheckoutController extends Controller
         ];
         $this->createTransaction( $transArr );
 
-        // Send out order confirmation emails
-        // Mail::send();
+        if( getShoppeSetting('manage_stock') ){
+            $inventoryConnector->removeStock( $items );
+        }
 
         $checkout['order_complete_route'] = config('shoppe.slugs.order_complete', 'order-complete');
 

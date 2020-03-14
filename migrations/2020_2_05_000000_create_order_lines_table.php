@@ -17,6 +17,7 @@ class CreateOrderLinesTable extends Migration
             $table->bigIncrements('id');
             $table->bigInteger('order_id');
             $table->bigInteger('product_id');
+            $table->bigInteger('variation_id')->default(0);
 			$table->decimal('price', 9, 2)->nullable();
             $table->integer('qty')->default(1);
 			$table->string('variation', 300)->nullable();

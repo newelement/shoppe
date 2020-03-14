@@ -37,7 +37,7 @@
                             <td data-label="Status" class="text-center">
                                 <span class="order-status-badge order-status-{{ $order->status }}">{{ $order->status_formatted }}</span>
                             </td>
-                            <td data-label="Items Total" class="text-right row-order-status-{{ $order->status }}">${{ $order->items_total }}</td>
+                            <td data-label="Items Total" class="text-right row-order-status-{{ $order->status }}">{{ currencySymbol() }}{{ formatCurrency($order->items_total) }}</td>
                             <td data-label="Taxes" class="text-right row-order-status-{{ $order->status }}">${{ $order->tax_amount }}</td>
                             <td data-label="Shipping" class="text-right row-order-status-{{ $order->status }}">${{ $order->shipping_amount }}</td>
                             <td data-label="Order Total" class="text-right row-order-status-{{ $order->status }}">${{ number_format( getOrderTotal( $order ), 2, '.', ',' ) }}</td>

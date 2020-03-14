@@ -31,7 +31,7 @@ $socialImages = getImageSizes($data->social_image);
                 Subtotal: ${{ $data->items_total }}<br>
                 Shipping: ${{ $data->shipping_amount }}<br>
                 Taxes: ${{ $data->tax_amount }}<br>
-                <strong>Total Charged:</strong> ${{ $data->linesTotal + $data->shipping_amount + $data->tax_tmount }}
+                <strong>Total Charged:</strong> ${{ $data->items_total + $data->shipping_amount + $data->tax_amount }}
                 </p>
 
                 <h3>You Ordered</h3>

@@ -42,4 +42,9 @@ class ProductVariation extends Model
     {
         return json_decode($value);
     }
+
+    public function product()
+    {
+        return $this->belongsTo('\Newelement\Shoppe\Models\Product');
+    }
 }

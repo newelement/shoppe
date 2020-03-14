@@ -45,6 +45,10 @@ class ShoppeServiceProvider extends ServiceProvider
             return new $class();
         });
 
+        $this->app->bind('Inventory', function ($app) {
+            return new \Newelement\Shoppe\Connectors\InventoryConnector;
+        });
+
 		$this->loadHelpers();
 		$this->registerConfigs();
 

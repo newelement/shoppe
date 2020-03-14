@@ -134,6 +134,7 @@ class OrderController extends Controller
         $orderTotal = getOrderTotal( $order );
         $paymentConnector = app('Payment');
         $taxConnector = app('Taxes');
+        $inventoryConnector = app('Inventory');
 
         $shippingAddress = $order->shippingAddress;
         $address = [
@@ -174,6 +175,16 @@ class OrderController extends Controller
 
             $this->createTransaction( $transArr );
 
+            // Return QTY back into stock
+            if( getShoppeSetting('manage_stock') ){
+                foreach( $order->orderLines as $orderLine ){
+                    if( $orderLine->qty ){
+                        $qty = ( $orderLine->qty - $orderLine->returned_qty );
+                        $inventoryConnector->addStock($orderLine->product->product_type, $qty, $orderLine->product_id, $orderLine->variation_id);
+                    }
+                }
+            }
+
             // We need to also refund the tax transaction
             if(  method_exists($taxConnector, 'createRefund') && $order->tax_object_id && $order->tax_amount ){
                 $taxObjectId = $order->tax_object_id;
@@ -208,7 +219,7 @@ class OrderController extends Controller
             $order->updated_at = now();
             $order->save();
 
-            // Notify user order was refunded
+
 
             // Log
             ActivityLog::insert([
@@ -267,7 +278,7 @@ class OrderController extends Controller
         $shippingAmount = (float) ( $request->shipping_amount )? $request->shipping_amount : 0.00;
         $taxes = 0.00;
 
-        if( $qty > $orderLine->qty  ){
+        if( $qty > ( $orderLine->qty - $orderLine->returned_qty )  ){
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' => 'QTY cannot exceed QTY on line'], 500);
             } else {
@@ -328,6 +339,7 @@ class OrderController extends Controller
 
         $paymentConnector = app('Payment');
         $taxConnector = app('Taxes');
+        $inventoryConnector = app('Inventory');
 
         $response = $paymentConnector->createRefund( $arr );
 
@@ -341,6 +353,7 @@ class OrderController extends Controller
                 'amount' => $amount + $shippingAmount + $taxes,
                 'tax_amount' => $taxes,
                 'shipping_amount' => $shippingAmount,
+                'qty' => $qty,
                 'order_id' => $order->id,
                 'line_id' => $orderLine->id,
                 'transaction_id' => $transactionId,
@@ -350,10 +363,16 @@ class OrderController extends Controller
             $this->createTransaction( $transArr );
 
             // Return QTY back into stock
-            if( $qty ){
-
+            if( getShoppeSetting('manage_stock') && $qty ){
+                $inventoryConnector->addStock($orderLine->product->product_type, $qty, $orderLine->product_id, $orderLine->variation_id);
             }
 
+            if( $qty === ( $orderLine->qty - $order->returned_qty )  ){
+                $orderLine->status = 4;
+                $orderLine->save();
+            }
+
+            // Update order info
             $order->updated_by = Auth::user()->id;
             $order->updated_at = now();
             $order->save();

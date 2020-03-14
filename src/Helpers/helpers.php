@@ -90,17 +90,17 @@ function cartCount(){
 
 
 function formatCurrency($price){
-
     $currency = config('shoppe.currency', 'USD');
+    $locale = app()->getLocale();
+    $formatter = new \NumberFormatter($locale, NumberFormatter::DECIMAL);
+    return $formatter->formatCurrency($price, $currency);
+}
 
-    switch($currency){
-        case 'USD':
-            $format = number_format($price, 2, '.', ',');
-        break;
-        default:
-            $format = number_format($price, 2, '.', ',');
-    }
-    return $format;
+function currencySymbol(){
+    $currency = config('shoppe.currency', 'USD');
+    $locale = app()->getLocale();
+    $formatter = new \NumberFormatter($locale."@currency=$currency", NumberFormatter::CURRENCY);
+    return $formatter->getSymbol(NumberFormatter::CURRENCY_SYMBOL);
 }
 
 function getPrice($productId){

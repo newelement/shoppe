@@ -20,10 +20,23 @@ class CartController extends Controller
     public function index(Request $request)
     {
         $cartItems = $this->getCartItems();
+        $inventoryConnector = app('Inventory');
         $data = Page::where('slug', 'cart')->first();
         $data->data_type = 'page';
         $data->items = $cartItems['items'];
         $data->sub_total = $cartItems['sub_total'];
+        // Check stock
+        if( getShoppeSetting('manage_stock') ){
+            $checkStock = $inventoryConnector->checkCartStock($cartItems['items']);
+            if( !$checkStock['success'] ){
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' =>  $checkStock['message'] ], 500);
+                } else {
+                    session()->flash('error', $checkStock['message']);
+                }
+            }
+        }
+
         if( $request->ajax() ){
             return response()->json($data);
         } else {
@@ -102,6 +115,8 @@ class CartController extends Controller
 
         }
 
+        $product = Product::find($productId);
+
         ActivityLog::insert([
             'activity_package' => 'shoppe',
             'activity_group' => 'cart',
@@ -167,7 +182,8 @@ class CartController extends Controller
         $id = $request->id;
         $cartUser = $this->getCartUser();
         $cart = Cart::where([ 'user_id' => $cartUser, 'id' => $id ])->orWhere(['temp_user_id' => $cartUser, 'id' => $id ]);
-        event(new ItemDeletedFromCart($cart));
+        $fullcart = Cart::find($id);
+        event(new ItemDeletedFromCart($fullcart));
         $delete = $cart->delete();
         $alert = $delete ? 'success' : 'error';
         $success = $delete ? true : false;

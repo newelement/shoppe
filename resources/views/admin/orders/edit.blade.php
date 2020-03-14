@@ -124,7 +124,7 @@
                                     <td class="text-center">{{ $line->qty }}</td>
                                     <td class="text-center">
                                     @if( !$order->disabled() && $line->status === 1 )
-                                        <button type="button" data-line-id="{{ $key+1 }}" data-order-ref="{{ $order->ref_id }}" data-item-title="{{ $line->product->title }}" data-line-seq="{{ $line->id }}" data-qty="{{ $line->qty }}" data-amount="{{ $line->price }}" class="btn small refund-item-btn">Refund</button>
+                                        <button type="button" data-line-id="{{ $key+1 }}" data-order-ref="{{ $order->ref_id }}" data-item-title="{{ $line->product->title }}" data-line-seq="{{ $line->id }}" data-qty="{{ $line->qty - $line->returned_qty }}" data-amount="{{ $line->price }}" class="btn small refund-item-btn">Refund</button>
                                     @endif
                                     @if( $line->status === 4 )
                                         Refunded
@@ -144,7 +144,9 @@
                                         Shipping: {{ $credit->shipping_amount }}
                                         </small>
                                     </td>
-                                    <td></td>
+                                    <td class="text-center">
+                                        @if( $credit->qty )  -  @endif {{ $credit->qty }}
+                                    </td>
                                     <td class="text-center"></td>
                                 </tr>
                                 @endforeach
@@ -162,6 +164,7 @@
                                     <th class="text-center" width="40">#</th>
                                     <th class="text-left">ID</th>
                                     <th class="text-left">Notes</th>
+                                    <th class="text-center">Qty</th>
                                     <th>Credit</th>
                                     <th>Debit</th>
                                     <th>User</th>
@@ -176,6 +179,7 @@
                                     {{ $trans->transaction_ref_id }}
                                     </td>
                                     <td class="text-left">{{ $trans->notes }}</td>
+                                    <td class="text-center">@if( $trans->transaction_type === 'credit' && $trans->qty )  -  @endif {{ $trans->qty }}</td>
                                     <td class="text-right">
                                         @if( $trans->transaction_type === 'credit' )
                                         <span class="credit-tag">${{ $trans->amount }}</span>

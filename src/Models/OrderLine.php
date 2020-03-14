@@ -32,4 +32,9 @@ class OrderLine extends Model
         return $this->hasMany('Newelement\Shoppe\Models\Transaction')->where('transaction_type', 'credit');
     }
 
+    public function getReturnedQtyAttribute()
+    {
+        return $this->hasMany('Newelement\Shoppe\Models\Transaction')->where('transaction_type', 'credit')->sum('qty');
+    }
+
 }
