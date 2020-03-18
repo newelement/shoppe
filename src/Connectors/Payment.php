@@ -29,51 +29,14 @@ class Payment
 
         if( $payment['save_card'] ){
 
-            $customerId = $this->getCustomerId();
+            $customer = $this->createCustomer( $payment );
+            $customerId = $customer['customer_id'];
+            $source = $customer['source'];
 
-            if( !$customerId ){
-
-                try{
-
-                    $customer = \Stripe\Customer::create([
-                        'email' => $payment['email'],
-                    ]);
-
-                    $customerId = $customer->id;
-
-                    $createSource = \Stripe\Customer::createSource(
-                        $customerId,
-                        ['source' => $payment['token'] ]
-                    );
-
-                    $source = $createSource->id;
-
-                } catch( \Exception $e ){
-                    $error = true;
-                    $message = $e->getMessage();
-                }
-
-            } else {
-
-                try{
-
-                    $createSource = \Stripe\Customer::createSource(
-                        $customerId,
-                        ['source' => $payment['token'] ]
-                    );
-
-                    $source = $createSource->id;
-
-                } catch( \Exception $e ){
-                    $error = true;
-                    $message = $e->getMessage();
-                }
-            }
-
-            if( $error ){
+            if( !$customer['success'] ){
                 return [
-                    'success' => $error? false : true,
-                    'message' => $message,
+                    'success' => false,
+                    'message' => $customer['message'],
                     'transaction_id' => ''
                 ];
             }
@@ -151,6 +114,61 @@ class Payment
         }
 
         return $arr;
+    }
+
+
+    private function createCustomer($payment)
+    {
+        $message = '';
+        $success = true;
+        $source = '';
+        $customerId = $this->getCustomerId();
+
+        if( !$customerId ){
+
+            try{
+
+                $customer = \Stripe\Customer::create([
+                    'email' => $payment['email'],
+                ]);
+
+                $customerId = $customer->id;
+
+                $createSource = \Stripe\Customer::createSource(
+                    $customerId,
+                    ['source' => $payment['token'] ]
+                );
+
+                $source = $createSource->id;
+
+            } catch( \Exception $e ){
+                $success = false;
+                $message = $e->getMessage();
+            }
+
+        } else {
+
+            try{
+
+                $createSource = \Stripe\Customer::createSource(
+                    $customerId,
+                    ['source' => $payment['token'] ]
+                );
+
+                $source = $createSource->id;
+
+            } catch( \Exception $e ){
+                    $success = false;
+                    $message = $e->getMessage();
+            }
+        }
+
+        return [
+            'success' => $success,
+            'message' => $message,
+            'source' => $source,
+            'customer_id' => $customerId
+        ];
     }
 
 
@@ -347,6 +365,250 @@ class Payment
         }
 
         return ['success' => $success, 'message' => $message ];
+    }
+
+    public function createSubscription( $checkout )
+    {
+        $customer = $this->createCustomer($checkout);
+        $message = '';
+        $success = true;
+
+        try{
+            $create = \Stripe\Subscription::create([
+                'customer' => $customer['customer_id'],
+                'items' => [
+                    [
+                        'plan' => $checkout['plan_id'],
+                        'tax_rates' => $checkout['tax_rates']
+                    ]
+                ],
+            ]);
+        } catch( \Exception $e ){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => false, 'message' => $message];
+        }
+
+        return ['success' => $success, 'message' => $message, 'transaction_id' => $create->id ];
+    }
+
+    public function getSubscriptionPlans()
+    {
+        $success = true;
+        $message = 'Successful';
+        $subs = [];
+        $plans = [];
+
+        try{
+            $plans = \Stripe\Plan::all();
+        } catch(\Exception $e){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        foreach( $plans->data as $plan ){
+            if( $plan->active ){
+                $product = \Stripe\Product::retrieve($plan->product);
+                $subs[] = [
+                    'id' => $plan->id,
+                    'amount' => number_format($plan->amount, 2),
+                    'interval' => $plan->interval,
+                    'interval_count' => $plan->interval_count,
+                    'name' => $product->name,
+                    'trial' => $plan->trial_period_days
+                ];
+            }
+        }
+
+        return ['success' => $success, 'message' => $message, 'plans' => $subs];
+    }
+
+    public function createSubscriptionPlan($arr)
+    {
+        $success = true;
+        $message = 'Successful';
+
+        try{
+            $create = \Stripe\Plan::create([
+                'amount' => $this->stripeAmount($arr['amount']),
+                'currency' => strtolower( config('shoppe.currency') ),
+                'interval' => $arr['interval'],
+                'interval_count' => $arr['interval_count'],
+                'product' => ['name' => $arr['name']],
+                'trial_period_days' => $arr['trial']
+            ]);
+        } catch( \Exception $e ) {
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        return ['success' => $success, 'message' => $message, 'id' => $create->id];
+    }
+
+    public function getSubscriptionPlan($id)
+    {
+        $success = true;
+        $message = 'Successful';
+        $sub = [];
+
+        try{
+            $plan = \Stripe\Plan::retrieve($id);
+            $product = \Stripe\Product::retrieve($plan->product);
+        } catch( \Exception $e){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        $sub = [
+            'id' => $plan->id,
+            'amount' => number_format($plan->amount, 2),
+            'interval' => $plan->interval,
+            'name' => $product->name,
+            'interval_count' => $plan->interval_count,
+            'trial' => $plan->trial_period_days
+        ];
+
+        return ['success' => $success, 'message' => $message, 'plan' => $sub];
+    }
+
+    public function updateSubscriptionPlan($arr)
+    {
+        $success = true;
+        $message = 'Successful';
+
+        try{
+            \Stripe\Plan::update(
+                $arr['id'],
+                [
+                'trial_period_days' => $arr['trial']
+            ]);
+        } catch( \Exception $e ) {
+            $success = false;
+            $message = $e->getMessage();
+        }
+
+        return ['success' => $success, 'message' => $message];
+    }
+
+    public function deleteSubscriptionPlan($id)
+    {
+        $success = true;
+        $message = 'Successful';
+
+        try{
+            $plan = \Stripe\Plan::retrieve(
+                  $id
+                );
+            $plan->delete();
+        } catch( \Exception $e ) {
+            $success = false;
+            $message = $e->getMessage();
+        }
+
+        return ['success' => $success, 'message' => $message];
+    }
+
+    public function getTaxRates()
+    {
+        $success = true;
+        $message = 'Successful';
+        $rates = [];
+
+        try{
+            $taxrates = \Stripe\TaxRate::all();
+        } catch(\Exception $e){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        foreach( $taxrates->data as $rate ){
+            $rates[] = [
+                'id' => $rate->id,
+                'description' => $rate->description,
+                'display_name' => $rate->display_name,
+                'inclusive' => $rate->inclusive,
+                'jurisdiction' => $rate->jurisdiction,
+                'percentage' => $rate->percentage,
+                'active' => $rate->active
+            ];
+        }
+
+        return ['success' => $success, 'message' => $message, 'rates' => $rates ];
+    }
+
+    public function getTaxRate($id)
+    {
+        $success = true;
+        $message = 'Successful';
+        $sub = [];
+
+        try{
+            $taxrate = \Stripe\TaxRate::retrieve($id);
+        } catch( \Exception $e){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        $rate = [
+            'id' => $taxrate->id,
+            'description' => $taxrate->description,
+            'display_name' => $taxrate->display_name,
+            'inclusive' => $taxrate->inclusive,
+            'jurisdiction' => $taxrate->jurisdiction,
+            'percentage' => $taxrate->percentage,
+            'active' => $taxrate->active
+        ];
+
+        return ['success' => $success, 'message' => $message, 'rate' => $rate];
+    }
+
+    public function createTaxRate($arr)
+    {
+        $success = true;
+        $message = 'Successful';
+
+        try{
+            $create = \Stripe\TaxRate::create([
+                'description' => $arr['description'],
+                'display_name' => $arr['display_name'],
+                'inclusive' => $arr['inclusive'],
+                'jurisdiction' => $arr['jurisdiction'],
+                'percentage' => $arr['percentage']
+            ]);
+        } catch( \Exception $e ) {
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => $success, 'message' => $message];
+        }
+
+        return ['success' => $success, 'message' => $message, 'id' => $create->id];
+    }
+
+    public function updateTaxRate($arr)
+    {
+        $success = true;
+        $message = 'Successful';
+
+        try{
+            \Stripe\TaxRate::update(
+                $arr['id'],
+                [
+                'active' => $arr['active'],
+                'description' => $arr['description'],
+                'display_name' => $arr['display_name'],
+                'jurisdiction' => $arr['jurisdiction'],
+            ]);
+        } catch( \Exception $e ) {
+            $success = false;
+            $message = $e->getMessage();
+        }
+
+        return ['success' => $success, 'message' => $message];
     }
 
     private function stripeAmount($amount)

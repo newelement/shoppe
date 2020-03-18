@@ -28,15 +28,15 @@ $socialImages = getImageSizes($data->social_image);
                     @endif
                     </div>
                     <ul class="product-images-thumbs">
+                        @if( $data->featuredImage )
                         <li>
                             <a class="product-image-thumb active" href="{{$featuredImageSizes['large']}}" data-medium="{{ $featuredImageSizes['medium'] }}">
                                 <img src="{{$data->featuredImage->file_path}}" alt="{{ $data->title }}">
                             </a>
                         </li>
+                        @endif
                         @php
-                        // Gallery images
 
-                        // Variation images
                         @endphp
                         @foreach( $data->variations as $variation )
                         @php
@@ -86,13 +86,16 @@ $socialImages = getImageSizes($data->social_image);
                         @endforeach
 
                         <p class="product-price">Price: <span id="price">{{ productPrice($data->id) }}</span></p>
+                        @if( $data->product_type === 'physical' )
                         <p class="product-stock">Stock: <span id="stock">{{ productStock($data->id) }}</span></p>
-
+                        @endif
                         <div id="shoppe-product-alert" class="alert d-none mb-3" role="alert"></div>
 
+                        @if( $data->product_type === 'physical' )
                         <p>
                         <input type="number" name="qty" value="1" class="form-control">
                         </p>
+                        @endif
 
                         <p>
                             <button type="submit" class="btn btn-primary btn-lg add-to-cart-btn" {{ $productAttributes->count() ? 'data-has-attributes="true"' : '' }}>Add to cart</button>

@@ -41,11 +41,14 @@ class ProductController extends Controller
 	{
     	$attributes = ProductAttribute::orderBy('name', 'asc')->get();
     	$fieldGroups = $this->getFieldGroups('products');
+        $payment = app('Payment');
+        $subscriptions = $payment->getSubscriptionPlans();
         $roles = Role::all();
     	return view('shoppe::admin.products.create', [
     	                                            'attributes' => $attributes,
     	                                            'field_groups' => $fieldGroups,
-                                                    'roles' => $roles
+                                                    'roles' => $roles,
+                                                    'subscriptions' => $subscriptions
     	                                            ]);
 	}
 
@@ -61,6 +64,7 @@ class ProductController extends Controller
             $product->slug = toSlug($request->slug, 'product');
             $product->product_type = $request->product_type;
             $product->product_file = $request->product_file;
+            $product->subscription_id = $request->subscription_id;
             $product->role_id = $request->role_id;
             $product->content = htmlentities($request->content);
             $product->short_content = htmlentities($request->short_content);
@@ -239,10 +243,18 @@ class ProductController extends Controller
 
         $fieldGroups = $this->getFieldGroups('products', false, $id);
         $attributes = ProductAttribute::orderBy('name', 'asc')->get();
+        $payment = app('Payment');
+        $subscriptions = $payment->getSubscriptionPlans();
         $terms = ObjectTerm::where('object_id', $id)->where('object_type', 'product')->get();
         $roles = Role::all();
 
-        return view('shoppe::admin.products.edit', ['product' => $product, 'field_groups' => $fieldGroups, 'terms' => $terms, 'attributes' => $attributes, 'roles' => $roles ]);
+        return view('shoppe::admin.products.edit', [
+            'product' => $product,
+            'field_groups' => $fieldGroups,
+            'terms' => $terms,
+            'subscriptions' => $subscriptions,
+            'attributes' => $attributes,
+            'roles' => $roles ]);
     }
 
 
@@ -258,6 +270,7 @@ class ProductController extends Controller
             $product->slug = $product->slug === $request->slug? $request->slug : toSlug($request->slug, 'product');
             $product->product_type = $request->product_type;
             $product->product_file = $request->product_file;
+            $product->subscription_id = $request->subscription_id;
             $product->role_id = $request->role_id;
             $product->content = htmlentities($request->content);
             $product->short_content = htmlentities($request->short_content);

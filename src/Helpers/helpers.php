@@ -349,7 +349,10 @@ function _parseSettingValue($setting){
             $value = $setting->string_value;
         break;
         case 'select' :
-            $value = $setting->string_value;
+            $value = json_decode($setting->options);
+        break;
+        case 'json' :
+            $value = json_decode($setting->options);
         break;
         case 'radio' :
             $value = $setting->string_value;

@@ -51,7 +51,8 @@ $socialImages = getImageSizes($data->social_image);
                                 @endif
                             </td>
                             <td class="text-center align-middle">${{ formatCurrency($item->price) }}</td>
-                            <td class="qty-cell align-middle">
+                            <td class="qty-cell text-center align-middle">
+                                @if( $item->product->product_type === 'physical' )
                                 <form action="/cart" method="post">
                                     @csrf
                                     @method('put')
@@ -65,6 +66,9 @@ $socialImages = getImageSizes($data->social_image);
                                         </svg>
                                     </button>
                                 </form>
+                                @else
+                                {{ $item->qty }}
+                                @endif
                             </td>
                             <td class="align-middle text-center">${{ formatCurrency($item->price * $item->qty) }}</td>
                             <td class="align-middle">

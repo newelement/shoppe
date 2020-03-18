@@ -17,7 +17,7 @@ trait ShippingService
     {
         $shippingAddress = false;
 
-        if( $this->savedShipping && $this->eligibleShipping ){
+        if( $this->savedShipping ){
             $savedAddress = AddressBook::find($this->savedShipping);
             $shippingAddress = [
                 'name' => $savedAddress->name,
@@ -30,7 +30,7 @@ trait ShippingService
                 'country' => $savedAddress->country,
                 'email' => $this->email
             ];
-        } elseif( $this->eligibleShipping ) {
+        } else {
             $shippingAddress = [
                 'name' => $request->shipping_name,
                 'company_name' => $request->shipping_company_name,

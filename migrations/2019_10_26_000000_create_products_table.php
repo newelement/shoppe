@@ -23,6 +23,7 @@ class CreateProductsTable extends Migration
             $table->text('specs')->nullable();
 
             $table->text('product_file')->nullable();
+            $table->string('subscription_id', 100)->nullable();
             $table->bigInteger('role_id')->nullable();
 
             $table->decimal('cost', 10, 2)->nullable();

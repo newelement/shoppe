@@ -46,12 +46,31 @@
                     <div class="select-wrapper">
                         <select id="product-type" name="product_type">
                             <option value="physical" {{ old('product_type', $product->product_type) === 'physical' ? 'selected="selected"' : '' }}>Physical</option>
+                            @if( $subscriptions )
+                            <option value="subscription" {{ old('product_type', $product->product_type) === 'subscription' ? 'selected="selected"' : '' }}>Subscription</option>
+                            @endif
                             <option value="role" {{ old('product_type', $product->product_type) === 'role' ? 'selected="selected"' : '' }}>User Role</option>
                             <option value="download" {{ old('product_type', $product->product_type) === 'download' ? 'selected="selected"' : '' }}>Downloadable</option>
                         </select>
                     </div>
                 </div>
             </div>
+
+            @if( $subscriptions )
+            <div id="product-subscription-row" class="form-row" @if( $product->product_type !== 'subscription' ) style="display: none;" @endif>
+                <label class="label-col">Subscription</label>
+                <div class="input-col">
+                    <div class="select-wrapper">
+                        <select id="subscription-id" name="subscription_id">
+                            <option value="">Choose...</option>
+                            @foreach( $subscriptions['plans'] as $subscription )
+                            <option value="{{$subscription['id']}}" {{ $product->subscription_id === $subscription['id'] ? 'selected="selected"' : '' }}>{{$subscription['name']}} - {{$subscription['amount']}} {{$subscription['interval']}}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <div id="product-file-row" class="form-row" @if( $product->product_type !== 'download' ) style="display: none;" @endif>
                 <label class="label-col">File</label>

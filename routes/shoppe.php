@@ -30,6 +30,19 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
     Route::post('/orders/{order}/note', $namespacePrefix.'Admin\OrderController@createNote');
     Route::get('/resend-reciept/{order}', $namespacePrefix.'Admin\OrderController@resendReceipt');
 
+    Route::get('/subscriptions', ['uses' => $namespacePrefix.'Admin\SubscriptionController@index', 'as' => 'shoppe']);
+    Route::get('/subscription', ['uses' => $namespacePrefix.'Admin\SubscriptionController@showCreate', 'as' => 'shoppe']);
+    Route::get('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@get', 'as' => 'shoppe']);
+    Route::post('/subscriptions', ['uses' => $namespacePrefix.'Admin\SubscriptionController@create', 'as' => 'shoppe']);
+    Route::put('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@update', 'as' => 'shoppe']);
+    Route::delete('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@delete', 'as' => 'shoppe']);
+
+    Route::get('/stripe/tax-rates', ['uses' => $namespacePrefix.'Admin\SubscriptionController@taxRates', 'as' => 'shoppe']);
+    Route::get('/stripe/tax-rate', ['uses' => $namespacePrefix.'Admin\SubscriptionController@showTaxRate', 'as' => 'shoppe']);
+    Route::get('/stripe/tax-rates/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@getTaxRate', 'as' => 'shoppe']);
+    Route::post('/stripe/tax-rates', ['uses' => $namespacePrefix.'Admin\SubscriptionController@createTaxRate', 'as' => 'shoppe']);
+    Route::put('/stripe/tax-rates/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@updateTaxRate', 'as' => 'shoppe']);
+
     Route::get('/shoppe', $namespacePrefix.'Admin\ShoppeController@index')->name('shoppe');
     Route::get('/shoppe-reports', $namespacePrefix.'Admin\ShoppeReportController@index')->name('shoppe');
     Route::get('/shoppe/sales-report', $namespacePrefix.'Admin\ShoppeReportController@getSales')->name('shoppe');

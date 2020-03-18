@@ -36,6 +36,7 @@ class Product extends Model
 			'content',
             'product_type',
             'product_file',
+            'subscription_id',
             'role_id',
             'short_content',
             'specs',

@@ -144,17 +144,19 @@ $socialImages = getImageSizes($data->social_image);
                                     </div>
                                 </section>
 
+                            @if( $data->eligible_shipping )
+                            <section class="section-card">
+                                <header>
+                                    <h3>Shipping Service</h3>
+                                </header>
+                                <div class="inner">
+                                    <ul class="shipping-rates-list">
+                                        <li class="enter-shipping-address-for-rates">Enter / choose your shipping address to see rates.</li>
+                                    </ul>
+                                </div>
+                            </section>
+                            @endif
 
-                                <section class="section-card">
-                                    <header>
-                                        <h3>Shipping Service</h3>
-                                    </header>
-                                    <div class="inner">
-                                        <ul class="shipping-rates-list">
-                                            <li class="enter-shipping-address-for-rates">Enter / choose your shipping address to see rates.</li>
-                                        </ul>
-                                    </div>
-                                </section>
                         </div>
 
 

@@ -41,6 +41,7 @@ class CheckoutController extends Controller
         $data->payment_connector = $paymentConnector->connector_name;
         $data->tax_connector = $taxesConnector->connector_name;
         $data->shipping_connector = $shippingConnector->connector_name;
+        $data->eligible_shipping = $cart['eligible_shipping'];
 
         $data->shipping_addresses = AddressBook::where(
                                     [
@@ -95,6 +96,7 @@ class CheckoutController extends Controller
         $cart = $this->getCartItems();
         $items = $cart['items'];
         $eligibleShipping = $cart['eligible_shipping'];
+        $eligibleSubscription = $cart['eligible_subscription'];
         $checkout = [];
 
         //Validate initial data
@@ -109,14 +111,15 @@ class CheckoutController extends Controller
 
         if( $eligibleShipping ){
             $validateArr['shipping_rate'] = 'required';
-            if( !$request->shipping_address_option ){
-                $validateArr['shipping_name'] = 'required';
-                $validateArr['shipping_address'] = 'required';
-                $validateArr['shipping_city'] = 'required';
-                $validateArr['shipping_state'] = 'required';
-                $validateArr['shipping_zipcode'] = 'required';
-                $validateArr['shipping_country'] = 'required';
-            }
+        }
+
+        if( !$request->shipping_address_option ){
+            $validateArr['shipping_name'] = 'required';
+            $validateArr['shipping_address'] = 'required';
+            $validateArr['shipping_city'] = 'required';
+            $validateArr['shipping_state'] = 'required';
+            $validateArr['shipping_zipcode'] = 'required';
+            $validateArr['shipping_country'] = 'required';
         }
 
         $validatedData = $request->validate(
@@ -141,6 +144,7 @@ class CheckoutController extends Controller
         $savedShipping = $request->shipping_address_option && $request->shipping_address_option !== 'new_shipping_address'? $request->shipping_address_option : false;
         $subTotal = $cart['sub_total'];
         $taxableTotal = $cart['taxable_total'];
+        $subscriptionTotal = $cart['subscription_total'];
         $refId = sha1( uniqid().microtime().$subTotal.$email.env('APP_KEY') );
         $user = Customer::createOrGet( $billing_name, $email );
         $customerId = false;
@@ -149,6 +153,7 @@ class CheckoutController extends Controller
         $isStoredPayment = $request->saved_payment? true : false;
         $token = $request->token? $request->token : $request->saved_payment;
         $saveCard = $request->save_card? true : false;
+        $shippingAmount = 0.00;
 
         // Start the checkout array
         $checkout['customer_name'] = $billing_name;
@@ -161,7 +166,10 @@ class CheckoutController extends Controller
         $checkout['ref_id'] = $refId;
         $checkout['items'] = $cart['items'];
         $checkout['sub_total'] = $subTotal;
+        $checkout['eligible_shipping'] = $eligibleShipping;
+        $checkout['eligible_shipping'] = $eligibleSubscription;
         $checkout['taxable_total'] = $taxableTotal;
+        $checkout['shipping_amount'] = $shippingAmount;
         $checkout['shipping_service_id'] = $request->shipping_rate? $request->shipping_rate : false ;
 
 
@@ -184,7 +192,7 @@ class CheckoutController extends Controller
         $flatRate = $cart['flat_rate_total'];
         $shippingAmount = $flatRate;
 
-        if( $cart['estimated_weight'] ){
+        if( $cart['estimated_weight'] && $eligibleShipping ){
             $estimatedRate = $shippingConnector->getShippingRates( $checkout );
             $checkout['shipping_connector'] = $shippingConnector->connector_name;
 
@@ -234,8 +242,6 @@ class CheckoutController extends Controller
             ActivityLog::insert([
                 'activity_package' => 'shoppe',
                 'activity_group' => 'cart.taxes',
-                //'object_type' => 'cart',
-                //'object_id' => $cart->id,
                 'content' => $taxes['message'],
                 'log_level' => 5,
                 'created_by' => $user->id,
@@ -259,36 +265,90 @@ class CheckoutController extends Controller
         *
         *
         */
+        if( $subscriptionTotal > 0 ){
+            $amount = (float) $subTotal - (float) $subscriptionTotal;
+        }
+
         $amount = (float) $subTotal + $shippingAmount + (float) $checkout['tax_amount'];
         $checkout['amount'] = $amount;
 
         // THE CHARGE
         $paymentConnector->email = strtolower($checkout['email']);
-        $charge = $paymentConnector->charge( $checkout );
 
-        $checkout['payment_connector'] = $paymentConnector->connector_name;
+        if( $amount > 0 ){
 
-        if( !$charge['success'] ){
+            $charge = $paymentConnector->charge( $checkout );
+            $checkout['payment_connector'] = $paymentConnector->connector_name;
 
-            ActivityLog::insert([
-                'activity_package' => 'shoppe',
-                'activity_group' => 'cart.payment',
-                //'object_type' => 'cart',
-                //'object_id' => $cart->id,
-                'content' => $charge['message'],
-                'log_level' => 5,
-                'created_by' => $user->id,
-                'created_at' => now()
-            ]);
+            if( !$charge['success'] ){
 
-            if( $request->ajax() ){
-                return response()->json(['success' => false, 'message' => $charge['message'], 'failed_on' => 'payment'], 500);
-            } else {
-                return back()->with('error', $charge['message']);
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.payment',
+                    'content' => $charge['message'],
+                    'log_level' => 5,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
+
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' => $charge['message'], 'failed_on' => 'payment'], 500);
+                } else {
+                    return back()->with('error', $charge['message']);
+                }
             }
+
+            $checkout['transaction_id'] = $charge['transaction_id'];
+
         }
 
-        $checkout['transaction_id'] = $charge['transaction_id'];
+        // Process a subscription if exists
+        if( $eligibleSubscription && $subscriptionTotal > 0 ){
+            $taxRates = getShoppeSetting('tax_rates');
+            $checkout['tax_rates'] = $taxRates;
+            $plan = $this->getPlanItems($items);
+            if( !$plan ){
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' =>  'Could not location a subscription plan.' ], 500);
+                } else {
+                    return redirect()->back()->with('error', 'Could not location a subscription plan.' );
+                }
+            }
+            $checkout['plan_id'] = $plan;
+            $subscription = $paymentConnector->createSubscription( $checkout );
+
+            if( $subscription['success'] ){
+
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.subscription',
+                    'content' => 'Subscription created.',
+                    'log_level' => 1,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
+
+                $checkout['transaction_id'] = $subscription['transaction_id'];
+
+            } else {
+
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.subscription',
+                    'content' => $subscription['message'],
+                    'log_level' => 5,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
+
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' =>  $subscription['message'] ], 500);
+                } else {
+                    return redirect()->back()->with('error', $subscription['message'] );
+                }
+            }
+
+        }
 
 
 
@@ -312,6 +372,7 @@ class CheckoutController extends Controller
             $checkout['card_brand'] = $charge['card_brand'];
             $checkout['payment_type'] = $charge['payment_type'];
         }
+
 
 
         /*
@@ -376,7 +437,7 @@ class CheckoutController extends Controller
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
             } else {
-                return back()->with('error', $e->getMessage() );
+                return redirect()->back()->with('error', $e->getMessage() );
             }
 
         }
@@ -409,8 +470,6 @@ class CheckoutController extends Controller
             ActivityLog::insert([
                 'activity_package' => 'shoppe',
                 'activity_group' => 'cart.order.line',
-                //'object_type' => 'cart',
-                //'object_id' => $cart->id,
                 'content' => $e->getMessage(),
                 'log_level' => 5,
                 'created_by' => $user->id,
@@ -420,7 +479,7 @@ class CheckoutController extends Controller
             if( $request->ajax() ){
                 return response()->json(['success' => false, 'message' =>  $e->getMessage() ], 500);
             } else {
-                return back()->with('error', $e->getMessage() );
+                return redirect()->back()->with('error', $e->getMessage() );
             }
         }
 
@@ -490,6 +549,12 @@ class CheckoutController extends Controller
         $taxes = 0.00;
         $code = 200;
         $arr = [];
+        $taxConnector = app('Taxes');
+        $cart = $this->getCartItems();
+
+        if( $cart['taxable_total'] <= 0 ){
+            return response()->json(['taxes' => 0.00 , 'message' => 'Nothing to tax.' ]);
+        }
 
         $shippingCost = $request->shipping;
         $shipping_address_id = $request->shipping_address_id;
@@ -518,12 +583,11 @@ class CheckoutController extends Controller
             ];
         }
 
-        $taxConnector = app('Taxes');
-        $cart = $this->getCartItems();
         $arr['shipping_address'] = $address;
         $arr['items'] = $cart['items'];
         $arr['shipping_amount'] = $shippingCost;
         $arr['taxable_total'] = $cart['taxable_total'];
+
         $taxes = $taxConnector->getTaxes( $arr );
 
         $code = $taxes['success'] ? 200 : 500;
@@ -545,6 +609,10 @@ class CheckoutController extends Controller
         $checkout = [];
         $shoppeSettings = getShoppeSettings();
         $rates = [ 'rates' => [] ];
+
+        if( !$cart['eligible_shipping'] ){
+            return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
+        }
 
         if( $cart['estimated_weight'] > 0 ){
 
@@ -606,5 +674,15 @@ class CheckoutController extends Controller
         }
 
         return response()->json(['rates' => $rates], $code);
+    }
+
+    private function getPlanItems($items)
+    {
+        foreach( $items as $item ){
+            if( $item->product->product_type === 'subscription' && $item->product->subscription_id ){
+                return $item->product->subscription_id;
+            }
+        }
+        return false;
     }
 }

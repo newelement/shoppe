@@ -120,7 +120,7 @@ let getShipping = async () => {
 
     return HTTP.post('/api/shipping', formData)
     .then( response => {
-        return response.data.rates;
+        return response.data;
     })
     .catch(e => {
         console.log('shipping error', e);
@@ -189,27 +189,28 @@ function validateShippingFields(){
 
     if( hasShippingAddress  && currentStep === 1 ){
         $checkoutErrorElement.innerHTML = '';
-        getShipping().then( (rates) => {
+        getShipping().then( (data) => {
 
-            shipping = rates.rates[0].amount;
+            if( data.eligible_shipping ){
+                shipping = data.rates[0].amount;
+                $q('.shipping-service-summary').innerHTML = rates.rates[0].carrier+' '+rates.rates[0].service;
 
-            $q('.shipping-service-summary').innerHTML = rates.rates[0].carrier+' '+rates.rates[0].service;
+                $shippingRatesList.innerHTML = '';
+                let rateItems = '';
+                rates.rates.forEach( (v, i) => {
+                    let checked = i === 0? 'checked="checked"' : '';
+                    rateItems += '<li class="rate-item">';
+                        rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
+                        rateItems += '<label for="rate-item-'+i+'">';
+                            rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
+                            rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
+                        rateItems += '</label>';
+                    rateItems += '</li>';
+                });
+                $shippingRatesList.innerHTML = rateItems;
+            }
 
-            $shippingRatesList.innerHTML = '';
-            let rateItems = '';
-            rates.rates.forEach( (v, i) => {
-                let checked = i === 0? 'checked="checked"' : '';
-                rateItems += '<li class="rate-item">';
-                    rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
-                    rateItems += '<label for="rate-item-'+i+'">';
-                        rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
-                        rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
-                    rateItems += '</label>';
-                rateItems += '</li>';
-            });
-            $shippingRatesList.innerHTML = rateItems;
-
-            $q('.shipping').innerHTML = shipping;
+            $q('.shipping').innerHTML = shipping.toFixed(2);
 
             let $shippingRates = $$q('.shipping-rates');
             if( $shippingRates.length ){
@@ -246,6 +247,7 @@ function validateShippingFields(){
                     $shippingTaxesLoader.classList.remove('loading');
                 }
             });
+
         });
 
     } else {
@@ -390,6 +392,7 @@ function submitOrder(){
     HTTP.post('/checkout', formData)
         .then( response => {
             window.location = '/'+response.data.order_complete_route+'/'+response.data.ref_id;
+            resetPlaceOrderLoader();
         })
         .catch(e => {
             resetPlaceOrderLoader();

@@ -14,6 +14,7 @@ trait CartData
         $cartUser = $this->getCartUser();
         $items = Cart::where('user_id', $cartUser)->orWhere('temp_user_id', $cartUser)->get();
         $eligibleShipping = false;
+        $eligibleSubscription = false;
         $estimatedShippingWeight = 0.00;
         $totalShippingWeight = 0.00;
         $estimtedLength = 0.00;
@@ -36,6 +37,8 @@ trait CartData
 
         $sub_total = 0.00;
         $taxable_total = 0.00;
+        $subscription_total = 0.00;
+
         $i = 0;
         foreach($items as $item){
 
@@ -56,6 +59,7 @@ trait CartData
                 $variationPrice = $variation->sale_price ? $variation->sale_price : $variation->price;
                 $productPrice = $product->sale_price ? $product->sale_price : $product->price;
                 $price = $variationPrice? $variationPrice : $productPrice;
+                $subscriptionPrice = $product->product_type === 'subscription'? $price : 0.00;
 
                 if( $product->product_type === 'physical' ){
                     $weight = $variation->weight > 0? $variation->weight : $product->weight;
@@ -64,15 +68,24 @@ trait CartData
                     }
                 }
 
+                if( $product->product_type === 'subscription' ){
+                    $eligibleSubscription = true;
+                }
+
                 $flatRate += $variation->shipping_rate_type === 'flat'? (float) $variation->shipping_rate : 0.00;
 
             } else {
                 $price = $product->sale_price ? $product->sale_price : $product->price;
+                $subscriptionPrice = $product->product_type === 'subscription'? $price : 0.00;
 
                 if( $product->product_type === 'physical' ){
                     if( $product->weight > 0 ){
                         $eligibleShipping = true;
                     }
+                }
+
+                if( $product->product_type === 'subscription' ){
+                    $eligibleSubscription = true;
                 }
 
                 $flatRate += $product->shipping_rate_type === 'flat'? (float) $product->shipping_rate : 0.00;
@@ -91,9 +104,10 @@ trait CartData
             $estLengths[] = (float) $weightDims['estdepth'];
 
             $items[$i]->price = (float) $price;
+            $items[$i]->subscription_price = (float) $subscriptionPrice;
             $items[$i]->line_total = (float) $price * (int) $item->qty;
             $items[$i]->product = $product;
-            $items[$i]->taxable_total = $product->is_taxable? $items[$i]->line_total : 0.00;
+            $items[$i]->taxable_total = $product->is_taxable && $product->product_type !== 'subscription' ? $items[$i]->line_total : 0.00;
             $items[$i]->variation = $variation;
             $items[$i]->variationFormatted = false;
             if( $items[$i]->variation_set ){
@@ -106,9 +120,14 @@ trait CartData
                 }
                 $items[$i]->variationFormatted = implode(', ', $formatted);
             }
-            $items[$i]->image =  $variation && $variation->image ? $variation->image : $product->featuredImage->file_path;
+
+            if($product->featuredImage) {
+                $items[$i]->image =  $variation && $variation->image ? $variation->image : $product->featuredImage->file_path;
+            }
+
             $sub_total += (float) $items[$i]->line_total;
             $taxable_total += (float) $items[$i]->taxable_total;
+            $subscription_total += (float) $items[$i]->subscription_price;
 
             $i++;
         }
@@ -128,6 +147,8 @@ trait CartData
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;
         $cartItems['taxable_total'] = $taxable_total;
+        $cartItems['subscription_total'] = $subscription_total;
+        $cartItems['eligible_subscription'] = $eligibleSubscription;
         $cartItems['eligible_shipping'] = $eligibleShipping;
         $cartItems['estimated_weight'] = $estimatedShippingWeight;
         $cartItems['total_weight'] = $totalShippingWeight;
