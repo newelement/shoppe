@@ -56,6 +56,13 @@ class ShoppeServiceProvider extends ServiceProvider
             $this->registerPublishableResources();
             $this->registerConsoleCommands();
         }
+
+        \Event::listen('stripe-webhooks::charge.succeeded', \Newelement\Shoppe\Listeners\ChargeSucceeded::class);
+        \Event::listen('stripe-webhooks::customer.deleted', \Newelement\Shoppe\Listeners\CustomerDeleted::class);
+        \Event::listen('stripe-webhooks::customer.subscription.trial_will_end', \Newelement\Shoppe\Listeners\TrialWillEnd::class);
+        \Event::listen('stripe-webhooks::customer.subscription.updated', \Newelement\Shoppe\Listeners\SubscriptionUpdated::class);
+        \Event::listen('stripe-webhooks::invoice.payment_succeeded', \Newelement\Shoppe\Listeners\PaymentSucceeded::class);
+        \Event::listen('stripe-webhooks::invoice.payment_failed', \Newelement\Shoppe\Listeners\PaymentFailed::class);
 	}
 
 	public function boot(Router $router, Dispatcher $event)

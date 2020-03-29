@@ -4,23 +4,91 @@ namespace Newelement\Shoppe\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Newelement\Neutrino\Models\ActivityLog;
+use Newelement\Shoppe\Models\Subscription;
 
 class SubscriptionController extends Controller
 {
-    public function index()
+
+    public function index(Request $request)
+    {
+        if( $request->s ){
+            $subscriptions = Subscription::search($request->s)
+                            ->with('user')
+                            ->with('customer')
+                            ->paginate(20);
+        } else {
+            $subscriptions = [];
+        }
+
+        return view('shoppe::admin.subscriptions.index', ['subs' => $subscriptions ]);
+    }
+
+    public function get($subscriptionId)
+    {
+        $payment = app('Payment');
+        $subscription = $payment->getSubscription($subscriptionId);
+
+        if( !$subscription['success'] ){
+            return redirect()->back()->with('error', $subscription['message']);
+        }
+
+        return view('shoppe::admin.subscriptions.edit', ['sub' => $subscription['subscription'], 'plans' => $subscription['plans']]);
+    }
+
+    public function update(Request $request, $id)
+    {
+
+        $args = [ 'plan' => $request->plan_id ];
+
+        if( $request->trial_end ){
+            $args['trial_end'] = \Carbon\Carbon::create($request->trial_end)->timestamp;
+            $args['trial_from_plan'] = false;
+        }
+
+        if( $request->disable_trial ){
+            $args['trial_end'] = 'now';
+            $args['trial_from_plan'] = false;
+        }
+
+        $payment = app('Payment');
+        $update = $payment->updateSubscription($id, $args);
+        if( !$update['success'] ){
+            return redirect()->back()->with('error', $update['message']);
+        }
+
+        return redirect('/admin/subscriptions/'.$id)->with('success', 'Subscription updated');
+    }
+
+    public function cancel($id)
+    {
+        $sub = Subscription::where([ 'stripe_id' => $id ])->first();
+        $sub->stripe_status = 'canceled';
+        $sub->save();
+
+        $paymentConnector = app('Payment');
+        $canceled = $paymentConnector->cancelSubscription($id);
+
+        if( $canceled['success'] ){
+            return redirect()->back()->with('success', 'Subscription was canceled.');
+        } else {
+            return redirect()->back()->with('success', $canceled['message']);
+        }
+    }
+
+    public function indexPlans()
     {
         $payment = app('Payment');
         $plans = $payment->getSubscriptionPlans();
 
-        return view('shoppe::admin.subscriptions.index', ['subs' => $plans['plans']]);
+        return view('shoppe::admin.subscription-plans.index', ['subs' => $plans['plans']]);
     }
 
-    public function showCreate()
+    public function showCreatePlan()
     {
-        return view('shoppe::admin.subscriptions.create');
+        return view('shoppe::admin.subscription-plans.create');
     }
 
-    public function create(Request $request)
+    public function createPlan(Request $request)
     {
         $validatedData = $request->validate([
            'plan_name' => 'required|max:100',
@@ -29,7 +97,7 @@ class SubscriptionController extends Controller
         ]);
 
         $name = $request->plan_name;
-        $amount = (float) $request->amount;
+        $amount = number_format($request->amount, 2, '.', '');
         $interval = $request->interval;
         $interval_count = (int) $request->interval_count? $request->interval_count : 1 ;
         $trial = (int) $request->trial? $request->trial : 0;
@@ -49,10 +117,10 @@ class SubscriptionController extends Controller
             return redirect()->back()->with('error', $created['message']);
         }
 
-        return redirect('/admin/subscriptions/'.$created['id'])->with('success', 'Subscription created.');
+        return redirect('/admin/subscription-plans/'.$created['id'])->with('success', 'Subscription plan created.');
     }
 
-    public function get($id)
+    public function getPlan($id)
     {
         $payment = app('Payment');
         $plan = $payment->getSubscriptionPlan($id);
@@ -61,10 +129,10 @@ class SubscriptionController extends Controller
             return redirect()->back()->with('error', $plan['message']);
         }
 
-        return view('shoppe::admin.subscriptions.edit', ['plan' => $plan['plan']]);
+        return view('shoppe::admin.subscription-plans.edit', ['plan' => $plan['plan']]);
     }
 
-    public function update(Request $request, $id)
+    public function updatePlan(Request $request, $id)
     {
         $validatedData = $request->validate([
            'plan_name' => 'required|max:100',
@@ -95,10 +163,10 @@ class SubscriptionController extends Controller
             return redirect()->back()->with('error', $updated['message']);
         }
 
-        return redirect('/admin/subscriptions/'.$id)->with('success', 'Subscription updated.');
+        return redirect('/admin/subscription-plans/'.$id)->with('success', 'Subscription plan updated.');
     }
 
-    public function delete(Request $request, $id)
+    public function deletePlan(Request $request, $id)
     {
         $id = $request->id;
 
@@ -109,7 +177,7 @@ class SubscriptionController extends Controller
             return redirect()->back()->with('error', $delete['message']);
         }
 
-        return redirect('/admin/subscriptions')->with('success', 'Subscription deleted.');
+        return redirect('/admin/subscription-plans')->with('success', 'Subscription plan deleted.');
     }
 
     public function taxRates()

@@ -130,6 +130,17 @@ class Payment
 
                 $customer = \Stripe\Customer::create([
                     'email' => $payment['email'],
+                    'shipping' => [
+                        'name' => $payment['shipping_address']['name'],
+                        'address' => [
+                            'line1' => $payment['shipping_address']['street1'],
+                            'line2' => $payment['shipping_address']['street2'],
+                            'city' => $payment['shipping_address']['city'],
+                            'country' => $payment['shipping_address']['country'],
+                            'zip' => $payment['shipping_address']['postal_code'],
+                            'state' => $payment['shipping_address']['state']
+                        ]
+                    ]
                 ]);
 
                 $customerId = $customer->id;
@@ -153,6 +164,23 @@ class Payment
                 $createSource = \Stripe\Customer::createSource(
                     $customerId,
                     ['source' => $payment['token'] ]
+                );
+
+                \Stripe\Customer::update(
+                    $customerId,
+                    [
+                        'shipping' => [
+                            'name' => $payment['shipping_address']['name'],
+                            'address' => [
+                                'line1' => $payment['shipping_address']['street1'],
+                                'line2' => $payment['shipping_address']['street2'],
+                                'city' => $payment['shipping_address']['city'],
+                                'country' => $payment['shipping_address']['country'],
+                                'zip' => $payment['shipping_address']['postal_code'],
+                                'state' => $payment['shipping_address']['state']
+                            ]
+                        ]
+                    ]
                 );
 
                 $source = $createSource->id;
@@ -367,21 +395,59 @@ class Payment
         return ['success' => $success, 'message' => $message ];
     }
 
+    public function getSubscriptions($customerId){
+        $message = 'Successful';
+
+        try{
+            $subscriptions = \Stripe\Subscription::all(['customer' => $customerId]);
+        } catch( \Exception $e ){
+            return ['success' => false, 'message' => $e->getMessage() ];
+        }
+
+        return ['success' => true, 'message' => $message, 'subscriptions' => $subsrciptions ];
+    }
+
+    public function getSubscription($subscriptionId)
+    {
+        $message = 'Successful';
+        $plans = [];
+
+        try{
+            $subscription = \Stripe\Subscription::retrieve($subscriptionId);
+            $planData = \Stripe\Plan::all();
+        } catch( \Exception $e ){
+            return ['success' => false, 'message' => $e->getMessage() ];
+        }
+
+        foreach($planData['data'] as $key => $plan){
+            $p = \Stripe\Product::retrieve($plan->product);
+            $plan->product = $p;
+            $plans[] = $plan;
+        }
+
+        return ['success' => true, 'message' => $message, 'subscription' => $subscription , 'plans' => $plans];
+    }
+
     public function createSubscription( $checkout )
     {
         $customer = $this->createCustomer($checkout);
         $message = '';
         $success = true;
+        $items = [];
+
+        foreach( $checkout['plan_ids'] as $planId ){
+            $items[] = [
+                    'plan' => $planId,
+                    'tax_rates' => $checkout['tax_rates']
+                ];
+        }
 
         try{
             $create = \Stripe\Subscription::create([
                 'customer' => $customer['customer_id'],
-                'items' => [
-                    [
-                        'plan' => $checkout['plan_id'],
-                        'tax_rates' => $checkout['tax_rates']
-                    ]
-                ],
+                'metadata' => ['refid' => $checkout['ref_id'] ],
+                'items' => $items,
+                'trial_from_plan' => true
             ]);
         } catch( \Exception $e ){
             $success = false;
@@ -389,7 +455,52 @@ class Payment
             return ['success' => false, 'message' => $message];
         }
 
-        return ['success' => $success, 'message' => $message, 'transaction_id' => $create->id ];
+        return ['success' => $success, 'message' => $message, 'transaction_id' => $create->id, 'payload' => $create ];
+    }
+
+    public function updateSubscription($id, $args)
+    {
+        $message = 'Successful';
+
+        try{
+            \Stripe\Subscription::update(
+              $id,
+              $args
+            );
+        } catch( \Exception $e ) {
+            return ['success' => false, 'message' => $e->getMessage() ];
+        }
+
+        return ['success' => true, 'message' => $message ];
+    }
+
+    public function cancelSubscription($id)
+    {
+        try{
+            $subscription = \Stripe\Subscription::retrieve(
+                $id
+            );
+            $subscription->delete();
+        } catch( \Exception $e ){
+            return [ 'success' => false, 'message' => $e->getMessage() ];
+        }
+
+        return [ 'success' => true, 'message' => 'Successful', 'payload' => $subscription ];
+    }
+
+    public function getProduct($productId)
+    {
+        $message = '';
+        $success = true;
+
+        try{
+            $payload = \Stripe\Product::retrieve($productId);
+        } catch( \Exception $e ){
+            $success = false;
+            $message = $e->getMessage();
+            return ['success' => false, 'message' => $message];
+        }
+        return ['success' => $success, 'message' => $message, 'payload' => $payload ];
     }
 
     public function getSubscriptionPlans()
@@ -412,7 +523,7 @@ class Payment
                 $product = \Stripe\Product::retrieve($plan->product);
                 $subs[] = [
                     'id' => $plan->id,
-                    'amount' => number_format($plan->amount, 2),
+                    'amount' => number_format($plan->amount/100, 2),
                     'interval' => $plan->interval,
                     'interval_count' => $plan->interval_count,
                     'name' => $product->name,
@@ -428,10 +539,11 @@ class Payment
     {
         $success = true;
         $message = 'Successful';
+        $amount = $this->stripeAmount($arr['amount']);
 
         try{
             $create = \Stripe\Plan::create([
-                'amount' => $this->stripeAmount($arr['amount']),
+                'amount' => $amount,
                 'currency' => strtolower( config('shoppe.currency') ),
                 'interval' => $arr['interval'],
                 'interval_count' => $arr['interval_count'],
@@ -464,7 +576,7 @@ class Payment
 
         $sub = [
             'id' => $plan->id,
-            'amount' => number_format($plan->amount, 2),
+            'amount' => number_format($plan->amount/100, 2),
             'interval' => $plan->interval,
             'name' => $product->name,
             'interval_count' => $plan->interval_count,
@@ -613,7 +725,9 @@ class Payment
 
     private function stripeAmount($amount)
     {
-        return preg_replace('~\D~', '', $amount);
+        $amount = preg_replace('~\D~', '', $amount);
+        $amount = intval($amount);
+        return $amount;
     }
 
 }

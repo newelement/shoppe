@@ -58,18 +58,28 @@
                     </div>
 
                     @if( $subscriptions )
-                    <div id="product-subscription-row" class="form-row" style="display: none">
-                        <label class="label-col">Subscription</label>
-                        <div class="input-col">
-                            <div class="select-wrapper">
-                                <select id="subscription-id" name="subscription_id">
-                                    <option value="">Choose...</option>
-                                    @foreach( $subscriptions['plans'] as $subscription )
-                                    <option value="{{$subscription['id']}}" {{ old('subscription_id') === $subscription['id'] ? 'selected="selected"' : '' }}>{{$subscription['name']}} - {{$subscription['amount']}} {{$subscription['interval']}}</option>
-                                    @endforeach
-                                </select>
+                    <div id="product-subscription-row" style="display: none">
+                        <div class="form-row">
+                            <label class="label-col" for="subscription-id">Subscription</label>
+                            <div class="input-col">
+                                <div class="select-wrapper">
+                                    <select id="subscription-id" name="subscription_id">
+                                        <option value="">Choose...</option>
+                                        @foreach( $subscriptions['plans'] as $subscription )
+                                        <option value="{{$subscription['id']}}" data-amount="{{$subscription['amount']}}" {{ old('subscription_id') === $subscription['id'] ? 'selected="selected"' : '' }}>{{$subscription['name']}} - {{$subscription['amount']}} {{$subscription['interval']}}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
+                        <div class="form-row">
+                            <label class="label-col" for="tax-inclusive">Tax Inclusive</label>
+                            <div class="input-col has-checkbox">
+                                <label><input type="checkbox" id="tax-inclusive" name="tax_inclusive" value="1" {{ old('tax_inclusive') === '1' ? 'checked' : '' }}> Yes</label>
+                            </div>
+                            <span class="input-notes"><span class="note">Will the subscription plan price include taxes?</span></span>
+                        </div>
+
                     </div>
                     @endif
 
@@ -128,6 +138,22 @@
                             <label><input type="checkbox" id="taxable" name="is_taxable" value="1" {{ old('is_taxable') === '1' ? 'checked' : '' }}> Yes</label>
                         </div>
                     </div>
+
+                    @if( $tax_codes )
+                        <div class="form-row">
+                            <label class="label-col" for="tax-code">Tax Code</label>
+                            <div class="input-col has-choices">
+
+                                    <select id="tax-code" class="js-choice" name="tax_code">
+                                        <option value="">Choose...</option>
+                                        @foreach( $tax_codes as $tax_code )
+                                        <option value="{{$tax_code['tax_code']}}" {{ old('tax_code') === $tax_code['tax_code'] ? 'selected="selected"' : '' }}>{{$tax_code['name']}}: {{$tax_code['description']}}</option>
+                                        @endforeach
+                                    </select>
+
+                            </div>
+                        </div>
+                        @endif
 
                     <div class="form-row">
                         <label class="label-col" for="contact-price">Contact for Pricing</label>

@@ -40,7 +40,7 @@ class InstallCommand extends Command
         }
         return 'composer';
     }
-    
+
     public function fire(Filesystem $filesystem)
     {
         return $this->handle($filesystem);
@@ -52,6 +52,8 @@ class InstallCommand extends Command
         // Publish only relevant resources on install
 
         $this->call('vendor:publish', ['--provider' => ShoppeServiceProvider::class]); // , '--tag' => $tags
+        $this->call('vendor:publish', ['--provider' => 'Spatie\StripeWebhooks\StripeWebhooksServiceProvider', '--tag' => 'config']);
+        $this->call('vendor:publish', ['--provider' => 'Spatie\WebhookClient\WebhookClientServiceProvider', '--tag' => 'migrations']);
 
 		$this->info('Migrating the database tables into your application');
         $this->call('migrate', ['--force' => $this->option('force')]);
@@ -65,17 +67,17 @@ class InstallCommand extends Command
 		$this->info('Adding Shoppe routes to routes/web.php');
 
         $routes_contents = $filesystem->get(base_path('routes/web.php'));
-        
+
         if (false === strpos($routes_contents, 'Shoppe::routes()')) {
-            
+
             $newContents = str_replace('Neutrino::routesPublic();', '', $routes_contents);
             $filesystem->put(base_path('routes/web.php'), $newContents);
-            
+
             $filesystem->append(
                 base_path('routes/web.php'),
                 "\nShoppe::routes();\n"
             );
-            
+
             $filesystem->append(
                 base_path('routes/web.php'),
                 "\nNeutrino::routesPublic();\n"

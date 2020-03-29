@@ -56,6 +56,7 @@ class CartController extends Controller
         $attributeIds = [];
         $cartUser = $this->getCartUser();
         $exists = false;
+        $cartProduct = false;
 
         if($attributes){
             $attributeIds = array_keys($attributes);
@@ -73,21 +74,27 @@ class CartController extends Controller
             $variationSets[] = [ $value => $variations[$key] ];
         }
 
-        // Does this item already exist in the cart?
-        $sql = "SELECT * FROM carts
-                WHERE ( (user_id = ? and product_id = ?) OR ( temp_user_id = ? and product_id = ? ) )
-                AND deleted_at IS NULL ";
-        $params = [
-            $cartUser,
-            $productId,
-            $cartUser,
-            $productId
-        ];
+        $product = Product::find($productId);
 
-        $product = collect(\DB::select($sql, $params))->first();
+        if( $product->product_type !== 'subscription' ){
 
-        if( $product ){
-            $currVariationSet = serialize( json_decode($product->variation_set, true) );
+            // Does this item already exist in the cart?
+            $sql = "SELECT * FROM carts
+                    WHERE ( (user_id = ? and product_id = ?) OR ( temp_user_id = ? and product_id = ? ) )
+                    AND deleted_at IS NULL ";
+            $params = [
+                $cartUser,
+                $productId,
+                $cartUser,
+                $productId
+            ];
+
+            $cartProduct = collect(\DB::select($sql, $params))->first();
+
+        }
+
+        if( $cartProduct ){
+            $currVariationSet = serialize( json_decode($cartProduct->variation_set, true) );
             $same = $currVariationSet === serialize( $variationSets) ;
             if( $same ){
                 $exists = $product;
@@ -114,8 +121,6 @@ class CartController extends Controller
             $cart->save();
 
         }
-
-        $product = Product::find($productId);
 
         ActivityLog::insert([
             'activity_package' => 'shoppe',

@@ -24,12 +24,14 @@ class CreateProductsTable extends Migration
 
             $table->text('product_file')->nullable();
             $table->string('subscription_id', 100)->nullable();
+            $table->boolean('tax_inclusive')->default(0);
             $table->bigInteger('role_id')->nullable();
 
             $table->decimal('cost', 10, 2)->nullable();
 			$table->decimal('price', 10, 2)->nullable();
 			$table->decimal('sale_price', 10 , 2)->nullable();
             $table->boolean('is_taxable')->default(1);
+            $table->string('tax_code', 100)->nullable();
             $table->boolean('contact_price')->default(0);
             $table->boolean('contact_avail')->default(0);
 

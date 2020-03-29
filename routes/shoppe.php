@@ -30,12 +30,17 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
     Route::post('/orders/{order}/note', $namespacePrefix.'Admin\OrderController@createNote');
     Route::get('/resend-reciept/{order}', $namespacePrefix.'Admin\OrderController@resendReceipt');
 
+    Route::get('/subscription-plans', ['uses' => $namespacePrefix.'Admin\SubscriptionController@indexPlans', 'as' => 'shoppe']);
+    Route::get('/subscription-plan', ['uses' => $namespacePrefix.'Admin\SubscriptionController@showCreatePlan', 'as' => 'shoppe']);
+    Route::get('/subscription-plans/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@getPlan', 'as' => 'shoppe']);
+    Route::post('/subscription-plans', ['uses' => $namespacePrefix.'Admin\SubscriptionController@createPlan', 'as' => 'shoppe']);
+    Route::put('/subscription-plans/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@updatePlan', 'as' => 'shoppe']);
+    Route::delete('/subscription-plans/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@deletePlan', 'as' => 'shoppe']);
+
     Route::get('/subscriptions', ['uses' => $namespacePrefix.'Admin\SubscriptionController@index', 'as' => 'shoppe']);
-    Route::get('/subscription', ['uses' => $namespacePrefix.'Admin\SubscriptionController@showCreate', 'as' => 'shoppe']);
-    Route::get('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@get', 'as' => 'shoppe']);
-    Route::post('/subscriptions', ['uses' => $namespacePrefix.'Admin\SubscriptionController@create', 'as' => 'shoppe']);
+    Route::get('/subscriptions/{subscriptionId}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@get', 'as' => 'shoppe']);
     Route::put('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@update', 'as' => 'shoppe']);
-    Route::delete('/subscriptions/{id}', ['uses' => $namespacePrefix.'Admin\SubscriptionController@delete', 'as' => 'shoppe']);
+    Route::post('/subscriptions/{id}/cancel', ['uses' => $namespacePrefix.'Admin\SubscriptionController@cancel', 'as' => 'shoppe']);
 
     Route::get('/stripe/tax-rates', ['uses' => $namespacePrefix.'Admin\SubscriptionController@taxRates', 'as' => 'shoppe']);
     Route::get('/stripe/tax-rate', ['uses' => $namespacePrefix.'Admin\SubscriptionController@showTaxRate', 'as' => 'shoppe']);
@@ -81,9 +86,16 @@ Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function ()
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/delete', ['uses' => $namespacePrefix.'CustomerController@cardsDelete', 'as' => 'customer.cards']);
     Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards/{id}/default', ['uses' => $namespacePrefix.'CustomerController@cardsDefault', 'as' => 'customer.cards']);
     Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/cards', ['uses' => $namespacePrefix.'CustomerController@cardsCreate', 'as' => 'customer.cards']);
+
+    Route::get('/'.config('shoppe.slugs.customer_account', 'customer-account').'/subscriptions', ['uses' => $namespacePrefix.'CustomerController@getSubscriptions', 'as' => 'customer.subscriptions']);
+    Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/subscriptions/{id}/cancel', ['uses' => $namespacePrefix.'CustomerController@cancelSubscription', 'as' => 'customer.subscriptions']);
+    Route::post('/'.config('shoppe.slugs.customer_account', 'customer-account').'/subscriptions/{id}/reactivate', ['uses' => $namespacePrefix.'CustomerController@reactivateSubscription', 'as' => 'customer.subscriptions']);
 });
 
 Route::group(['prefix' => 'api', 'as' => 'shoppe.'], function () use ( $namespacePrefix ) {
     Route::post('/taxes', $namespacePrefix.'CheckoutController@getTaxes');
     Route::post('/shipping', $namespacePrefix.'CheckoutController@getShipping');
+
 });
+
+Route::stripeWebhooks('/stripe-webhooks');

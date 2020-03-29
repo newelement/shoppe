@@ -7,7 +7,7 @@
                 <h2>Create Subscription Plan</h2>
             </div>
 
-            <form action="/admin/subscriptions" method="post">
+            <form action="/admin/subscription-plans" method="post">
                 @csrf
 
                 <div class="form-row">

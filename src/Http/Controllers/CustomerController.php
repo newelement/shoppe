@@ -12,6 +12,7 @@ use Newelement\Shoppe\Models\Order;
 use Newelement\Shoppe\Models\User;
 use Newelement\Shoppe\Models\AddressBook;
 use Newelement\Shoppe\Models\Customer;
+use Newelement\Shoppe\Models\Subscription;
 
 class CustomerController extends Controller
 {
@@ -30,10 +31,12 @@ class CustomerController extends Controller
         $data->data_type = 'page';
         $data->keywords = '';
         $data->meta_description = '';
+        $user_id = auth()->user()->id;
 
-        $orders = Order::where('user_id', auth()->user()->id )->orderBy('status', 'asc')->orderBy('created_at', 'asc')->paginate(20);
-
+        $orders = Order::where('user_id', $user_id )->orderBy('status', 'asc')->orderBy('created_at', 'asc')->paginate(20);
+        $subscriptions = Subscription::where('user_id', $user_id)->get();
         $data->orders = $orders;
+        $data->subscriptions = $subscriptions;
 
         return view( 'shoppe::customer.index' , [ 'data' => $data ]);
     }
@@ -64,8 +67,6 @@ class CustomerController extends Controller
         $data->data_type = 'page';
         $data->keywords = '';
         $data->meta_description = '';
-
-
 
         return view( 'shoppe::customer.security' , [ 'data' => $data ]);
     }
@@ -357,6 +358,52 @@ class CustomerController extends Controller
             return redirect()->back()->with('success', 'Payment type default set.' );
         } else {
             return redirect()->back()->with('error', $default['message'] );
+        }
+
+    }
+
+    public function getSubscriptions()
+    {
+        $data = new \stdClass;
+        $data->title = 'Subscriptions';
+        $data->data_type = 'page';
+        $data->keywords = '';
+        $data->meta_description = '';
+
+        $data->subscriptions = Subscription::where(
+                                ['user_id' => auth()->user()->id]
+                            )
+                            ->orderBy('stripe_status', 'asc')
+                            ->get();
+
+        return view( 'shoppe::customer.subscriptions' , [ 'data' => $data ]);
+    }
+
+    public function cancelSubscription(Request $request, $id)
+    {
+
+        $sub = Subscription::where(
+                                [
+                                'user_id' => auth()->user()->id,
+                                'stripe_id' => $id
+                                ]
+                            )
+                            ->first();
+
+        if( !$sub ){
+            return redirect()->back()->with('error', 'There was an issue locating your subscription.');
+        }
+
+        $sub->stripe_status = 'canceled';
+        $sub->save();
+
+        $paymentConnector = app('Payment');
+        $canceled = $paymentConnector->cancelSubscription($id);
+
+        if( $canceled['success'] ){
+            return redirect()->back()->with('success', 'Your subscription was canceled.');
+        } else {
+            return redirect()->back()->with('success', $canceled['message']);
         }
 
     }

@@ -97,4 +97,27 @@ class AvalaraConnector
     }
     */
 
+    public function getTaxCodes()
+    {
+
+        $taxCodes[] = [
+                'name' => 'Live Bait',
+                'description' => 'Live bait code. You need bugs we got bugs.',
+                'tax_code' =>  '000000P1'
+            ];
+
+        $taxCodes[] = [
+                'name' => 'Subscription',
+                'description' => 'Digital codes for life.',
+                'tax_code' =>  '000000D1'
+            ];
+
+        $arr = [
+            'success' => true, 'message' => 'Tax codes success', 'tax_codes' => $taxCodes
+        ];
+
+        return $arr;
+
+    }
+
 }

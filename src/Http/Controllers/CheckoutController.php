@@ -16,6 +16,7 @@ use Newelement\Shoppe\Traits\TaxService;
 use Illuminate\Support\Facades\Hash;
 use Newelement\Shoppe\Events\OrderCreated;
 use Newelement\Neutrino\Models\ActivityLog;
+use Newelement\Shoppe\Models\Subscription;
 use Auth;
 
 class CheckoutController extends Controller
@@ -148,6 +149,7 @@ class CheckoutController extends Controller
         $refId = sha1( uniqid().microtime().$subTotal.$email.env('APP_KEY') );
         $user = Customer::createOrGet( $billing_name, $email );
         $customerId = false;
+        $plans = [];
 
         // Get request params
         $isStoredPayment = $request->saved_payment? true : false;
@@ -167,8 +169,9 @@ class CheckoutController extends Controller
         $checkout['items'] = $cart['items'];
         $checkout['sub_total'] = $subTotal;
         $checkout['eligible_shipping'] = $eligibleShipping;
-        $checkout['eligible_shipping'] = $eligibleSubscription;
+        $checkout['eligible_subscription'] = $eligibleSubscription;
         $checkout['taxable_total'] = $taxableTotal;
+        $checkout['subscription_total'] = $subscriptionTotal;
         $checkout['shipping_amount'] = $shippingAmount;
         $checkout['shipping_service_id'] = $request->shipping_rate? $request->shipping_rate : false ;
 
@@ -201,8 +204,6 @@ class CheckoutController extends Controller
                 ActivityLog::insert([
                     'activity_package' => 'shoppe',
                     'activity_group' => 'cart.shipping',
-                    //'object_type' => 'cart',
-                    //'object_id' => $cart->id,
                     'content' => $estimatedRate['message'],
                     'log_level' => 5,
                     'created_by' => $user->id,
@@ -234,29 +235,31 @@ class CheckoutController extends Controller
         *
         *
         */
-        $taxes = $taxesConnector->getTaxes( $checkout );
-        $checkout['tax_connector'] = $taxesConnector->connector_name;
+        if( $taxableTotal > 0 && method_exists( $taxesConnector, 'getTaxes' ) ) {
+            $taxes = $taxesConnector->getTaxes( $checkout );
+            $checkout['tax_connector'] = $taxesConnector->connector_name;
 
-        if( !$taxes['success'] ){
+            if( !$taxes['success'] ){
 
-            ActivityLog::insert([
-                'activity_package' => 'shoppe',
-                'activity_group' => 'cart.taxes',
-                'content' => $taxes['message'],
-                'log_level' => 5,
-                'created_by' => $user->id,
-                'created_at' => now()
-            ]);
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.taxes',
+                    'content' => $taxes['message'],
+                    'log_level' => 5,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
 
-            if( $request->ajax() ){
-                return response()->json(['success' => false, 'message' => $taxes['message'], 'failed_on' => 'taxes'], 500);
-            } else {
-                return back()->with('error', $taxes['message']);
+                if( $request->ajax() ){
+                    return response()->json(['success' => false, 'message' => $taxes['message'], 'failed_on' => 'taxes'], 500);
+                } else {
+                    return back()->with('error', $taxes['message']);
+                }
             }
         }
 
-        $checkout['tax_amount'] = $taxes['tax_amount'];
-        $checkout['tax_rate'] = $taxes['tax_rate'];
+        $checkout['tax_amount'] = $taxableTotal > 0? $taxes['tax_amount'] : 0.00;
+        $checkout['tax_rate'] = $taxableTotal > 0? $taxes['tax_rate'] : 0;
 
 
 
@@ -266,7 +269,7 @@ class CheckoutController extends Controller
         *
         */
         if( $subscriptionTotal > 0 ){
-            $amount = (float) $subTotal - (float) $subscriptionTotal;
+            $subTotal = (float) $subTotal - (float) $subscriptionTotal;
         }
 
         $amount = (float) $subTotal + $shippingAmount + (float) $checkout['tax_amount'];
@@ -275,7 +278,7 @@ class CheckoutController extends Controller
         // THE CHARGE
         $paymentConnector->email = strtolower($checkout['email']);
 
-        if( $amount > 0 ){
+        if( $subTotal > 0 ){
 
             $charge = $paymentConnector->charge( $checkout );
             $checkout['payment_connector'] = $paymentConnector->connector_name;
@@ -306,47 +309,72 @@ class CheckoutController extends Controller
         if( $eligibleSubscription && $subscriptionTotal > 0 ){
             $taxRates = getShoppeSetting('tax_rates');
             $checkout['tax_rates'] = $taxRates;
-            $plan = $this->getPlanItems($items);
-            if( !$plan ){
-                if( $request->ajax() ){
-                    return response()->json(['success' => false, 'message' =>  'Could not location a subscription plan.' ], 500);
-                } else {
-                    return redirect()->back()->with('error', 'Could not location a subscription plan.' );
+
+            $planIds = [];
+            foreach( $items as $item ){
+                if( $item->product->product_type === 'subscription' && $item->product->subscription_id ){
+                    $planIds[] = $item->product->subscription_id;
                 }
             }
-            $checkout['plan_id'] = $plan;
-            $subscription = $paymentConnector->createSubscription( $checkout );
+                if( count($planIds) > 0 ){
+                    $checkout['plan_ids'] = $planIds;
+                    $subscription = $paymentConnector->createSubscription( $checkout );
 
-            if( $subscription['success'] ){
+                    if( $subscription['success'] ){
 
-                ActivityLog::insert([
-                    'activity_package' => 'shoppe',
-                    'activity_group' => 'cart.subscription',
-                    'content' => 'Subscription created.',
-                    'log_level' => 1,
-                    'created_by' => $user->id,
-                    'created_at' => now()
-                ]);
+                        ActivityLog::insert([
+                            'activity_package' => 'shoppe',
+                            'activity_group' => 'cart.subscription',
+                            'content' => 'Subscription created.',
+                            'log_level' => 1,
+                            'created_by' => $user->id,
+                            'created_at' => now()
+                        ]);
 
-                $checkout['transaction_id'] = $subscription['transaction_id'];
+                        $checkout['transaction_id'] = $subscription['transaction_id'];
 
-            } else {
+                    } else {
 
-                ActivityLog::insert([
-                    'activity_package' => 'shoppe',
-                    'activity_group' => 'cart.subscription',
-                    'content' => $subscription['message'],
-                    'log_level' => 5,
-                    'created_by' => $user->id,
-                    'created_at' => now()
-                ]);
+                        ActivityLog::insert([
+                            'activity_package' => 'shoppe',
+                            'activity_group' => 'cart.subscription',
+                            'content' => $subscription['message'],
+                            'log_level' => 5,
+                            'created_by' => $user->id,
+                            'created_at' => now()
+                        ]);
 
-                if( $request->ajax() ){
-                    return response()->json(['success' => false, 'message' =>  $subscription['message'] ], 500);
-                } else {
-                    return redirect()->back()->with('error', $subscription['message'] );
+                        if( $request->ajax() ){
+                            return response()->json(['success' => false, 'message' =>  $subscription['message'] ], 500);
+                        } else {
+                            return redirect()->back()->with('error', $subscription['message'] );
+                        }
+                    }
+
+                    $stripe_id = $subscription['payload']->customer;
+                    $plan_name = '';
+                    $subInsert = [];
+
+                    foreach( $subscription['payload']->items->data as $subItem ){
+                        $prod = $paymentConnector->getProduct($subItem->plan->product);
+                        $subInsert[] = [
+                            'user_id' => $user->id,
+                            'stripe_id' => $subItem->subscription,
+                            'stripe_plan' => $subItem->plan->id,
+                            'name' => $prod['success']? $prod['payload']->name : 'NA',
+                            'stripe_status' => $subscription['payload']->status,
+                            'qty' => $subscription['payload']->quantity,
+                            'trial_ends_at' => $subscription['payload']->trial_end? $subscription['payload']->trial_end : null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
+                    }
+
+                    if( $subInsert ){
+                        Subscription::insert($subInsert);
+                    }
+
                 }
-            }
 
         }
 
@@ -357,20 +385,22 @@ class CheckoutController extends Controller
         *
         *
         */
-        if( $saveCard ){
-            $checkout['customer_id'] = $charge['customer_id'];
-            $checkout['last_four'] = $charge['last_four'];
-            $checkout['card_brand'] = $charge['card_brand'];
-            $checkout['payment_type'] = $charge['payment_type'];
-            $checkout['billing_id'] = $charge['billing_id'];
-            $savedCustomer = Customer::saveCustomer( $checkout, $user );
-            $savedPaymentType = PaymentType::savePayment( $checkout, $user );
-        }
+        if( $subTotal > 0 ){
+            if( $saveCard ){
+                $checkout['customer_id'] = $charge['customer_id'];
+                $checkout['last_four'] = $charge['last_four'];
+                $checkout['card_brand'] = $charge['card_brand'];
+                $checkout['payment_type'] = $charge['payment_type'];
+                $checkout['billing_id'] = $charge['billing_id'];
+                $savedCustomer = Customer::saveCustomer( $checkout, $user );
+                $savedPaymentType = PaymentType::savePayment( $checkout, $user );
+            }
 
-        if( $isStoredPayment ){
-            $checkout['last_four'] = $charge['last_four'];
-            $checkout['card_brand'] = $charge['card_brand'];
-            $checkout['payment_type'] = $charge['payment_type'];
+            if( $isStoredPayment ){
+                $checkout['last_four'] = $charge['last_four'];
+                $checkout['card_brand'] = $charge['card_brand'];
+                $checkout['payment_type'] = $charge['payment_type'];
+            }
         }
 
 
@@ -389,9 +419,7 @@ class CheckoutController extends Controller
             $order->shipping_connector = isset($checkout['shipping_connector'])? $checkout['shipping_connector'] : null;
             $order->tax_connector = isset($checkout['tax_connector'])? $checkout['tax_connector'] : null;
             $order->status = 1;
-            if( $eligibleShipping ){
-                $order->address_book_id = $savedShipping? $savedShipping : $address->id;
-            }
+            $order->address_book_id = $savedShipping? $savedShipping : $address->id;
             $order->carrier = isset( $checkout['shipping_carrier'] )? $checkout['shipping_carrier'] : null;
             $order->shipping_service = isset( $checkout['shipping_service'] )? $checkout['shipping_service'] : null;
             $order->shipping_id = isset( $checkout['shipping_service_id'] )? $checkout['shipping_service_id'] : null;
@@ -426,8 +454,6 @@ class CheckoutController extends Controller
             ActivityLog::insert([
                 'activity_package' => 'shoppe',
                 'activity_group' => 'cart.order',
-                //'object_type' => 'cart',
-                //'object_id' => $cart->id,
                 'content' => $e->getMessage(),
                 'log_level' => 5,
                 'created_by' => $user->id,
@@ -448,8 +474,8 @@ class CheckoutController extends Controller
 
         // INSERT ORDER LINES
         $lines = [];
-        foreach( $items as $item ){
-            $lines[] = [
+        foreach( $items as $key => $item ){
+            $lines[$key] = [
                 'order_id' => $checkout['order_id'],
                 'product_id' => $item->product->id,
                 'variation_id' => $item->variation_id,
@@ -484,24 +510,47 @@ class CheckoutController extends Controller
         }
 
         // COMMIT TAX TRANSACTION
-        if( method_exists( $taxesConnector, 'createTransaction' ) ){
-            $taxTransaction = $taxesConnector->createTransaction( $checkout );
-            if( $taxTransaction['success'] ){
-                $order->tax_object_id = $taxTransaction['tax_object_id'];
-                $order->save();
+        if( $taxableTotal > 0 ){
+            if( method_exists( $taxesConnector, 'createTransaction' ) ){
+                $taxTransaction = $taxesConnector->createTransaction( $checkout );
+                if( $taxTransaction['success'] ){
+                    $order->tax_object_id = $taxTransaction['tax_object_id'];
+                    $order->save();
+                }
             }
         }
 
         // INSERT TRANSACTION LOG
-        $transArr = [
+        if( $subTotal > 0 ){
+            $transArr = [
                 'type' => 'debit',
                 'amount' => $checkout['amount'],
                 'order_id' => $checkout['order_id'],
                 'transaction_id' => $checkout['transaction_id'],
                 'notes' => 'Order created.',
+                'transaction_on' => 'order',
                 'user_id' => $user->id
-        ];
-        $this->createTransaction( $transArr );
+            ];
+            $this->createTransaction( $transArr );
+        }
+
+        /* INVOICE
+
+        */
+
+
+        if( $subscriptionTotal > 0 ){
+            $transArr = [
+                'type' => 'debit',
+                'amount' => $subscriptionTotal + $checkout['tax_amount'],
+                'order_id' => $checkout['order_id'],
+                'transaction_id' => $checkout['transaction_id'],
+                'notes' => 'Subscription created.',
+                'transaction_on' => 'subscription',
+                'user_id' => $user->id
+            ];
+            $this->createTransaction( $transArr );
+        }
 
         if( getShoppeSetting('manage_stock') ){
             $inventoryConnector->removeStock( $items );
@@ -552,7 +601,7 @@ class CheckoutController extends Controller
         $taxConnector = app('Taxes');
         $cart = $this->getCartItems();
 
-        if( $cart['taxable_total'] <= 0 ){
+        if( $cart['taxable_total'] <= 0 || !method_exists( $taxConnector, 'getTaxes' ) ){
             return response()->json(['taxes' => 0.00 , 'message' => 'Nothing to tax.' ]);
         }
 

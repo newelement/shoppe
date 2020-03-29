@@ -163,7 +163,7 @@ class TaxJarConnector
         $id = uniqid();
 
         try{
-            $refund = $client->createRefund([
+            $refund = $this->taxjar->createRefund([
                 'transaction_id' => $id,
                 'transaction_reference_id' => $arr['tax_object_id'],
                 'transaction_date' => now(),
@@ -185,6 +185,32 @@ class TaxJarConnector
 
         $arr = [
             'success' => $success, 'message' => $message, 'tax_object_id' => $refund->transaction_id
+        ];
+
+        return $arr;
+
+    }
+
+    public function getTaxCodes()
+    {
+
+        try{
+            $categories = $this->taxjar->categories();
+        catch( \Exception $e ){
+            return [ 'success' => false, 'message' => $e->getMessage(), 'tax_codes' => false ];
+        }
+
+        $taxCodes = [];
+        foreach( $categories as $code ){
+            $taxCodes[] = [
+                'name' => $code->name,
+                'description' => $code->description,
+                'tax_code' =>  $code->product_tax_code
+            ];
+        }
+
+        $arr = [
+            'success' => true, 'message' => 'Tax codes success', 'tax_codes' => $taxCodes
         ];
 
         return $arr;

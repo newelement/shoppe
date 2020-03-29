@@ -42,12 +42,15 @@ class ProductController extends Controller
     	$attributes = ProductAttribute::orderBy('name', 'asc')->get();
     	$fieldGroups = $this->getFieldGroups('products');
         $payment = app('Payment');
+        $taxConnector = app('Taxes');
         $subscriptions = $payment->getSubscriptionPlans();
+        $taxCodes = method_exists($taxConnector, 'getTaxCodes')? $taxConnector->getTaxCodes() : ['tax_codes' => false];
         $roles = Role::all();
     	return view('shoppe::admin.products.create', [
     	                                            'attributes' => $attributes,
     	                                            'field_groups' => $fieldGroups,
                                                     'roles' => $roles,
+                                                    'tax_codes' => $taxCodes['tax_codes'],
                                                     'subscriptions' => $subscriptions
     	                                            ]);
 	}
@@ -75,6 +78,8 @@ class ProductController extends Controller
             $product->contact_avail = $request->contact_avail ? 1 : 0;
             $product->sale_price = $request->sale_price;
             $product->is_taxable = $request->is_taxable ? 1 : 0;
+            $product->tax_code = $request->tax_code;
+            $product->tax_inclusive = $request->tax_inclusive ? 1 : 0;
             $product->sku = $request->sku;
             $product->mfg_part_number = $request->mfg_part_number;
             $product->stock = $request->stock;
@@ -244,7 +249,9 @@ class ProductController extends Controller
         $fieldGroups = $this->getFieldGroups('products', false, $id);
         $attributes = ProductAttribute::orderBy('name', 'asc')->get();
         $payment = app('Payment');
+        $taxConnector = app('Taxes');
         $subscriptions = $payment->getSubscriptionPlans();
+        $taxCodes = method_exists($taxConnector, 'getTaxCodes')? $taxConnector->getTaxCodes() : ['tax_codes' => false];
         $terms = ObjectTerm::where('object_id', $id)->where('object_type', 'product')->get();
         $roles = Role::all();
 
@@ -253,6 +260,7 @@ class ProductController extends Controller
             'field_groups' => $fieldGroups,
             'terms' => $terms,
             'subscriptions' => $subscriptions,
+            'tax_codes' => $taxCodes['tax_codes'],
             'attributes' => $attributes,
             'roles' => $roles ]);
     }
@@ -281,6 +289,8 @@ class ProductController extends Controller
             $product->contact_avail = $request->contact_avail ? 1 : 0;
             $product->sale_price = $request->sale_price;
             $product->is_taxable = $request->is_taxable ? 1 : 0;
+            $product->tax_code = $request->tax_code;
+            $product->tax_inclusive = $request->tax_inclusive ? 1 : 0;
             $product->sku = $request->sku;
             $product->mfg_part_number = $request->mfg_part_number;
             $product->stock = $request->stock;

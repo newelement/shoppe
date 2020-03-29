@@ -15,10 +15,11 @@
         }
     ],
     "require": {
-        "newelement/neutrino": "1.*",
+        "newelement/neutrino": "*",
         "shippo/shippo-php": "1.*",
         "avalara/avataxclient": "*",
         "taxjar/taxjar-php": "^1.8",
+        "spatie/laravel-stripe-webhooks": "^2.2",
         "stripe/stripe-php": "^7.23"
     },
     "autoload": {

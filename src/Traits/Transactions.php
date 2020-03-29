@@ -3,7 +3,6 @@
 namespace Newelement\Shoppe\Traits;
 
 use Newelement\Shoppe\Models\Transaction;
-use Auth, App\User;
 
 trait Transactions
 {
@@ -20,6 +19,7 @@ trait Transactions
                $transaction->qty = isset($arr['qty'])? $arr['qty'] : null ;
                $transaction->shipping_amount = isset($arr['shipping_amount'])? $arr['shipping_amount'] : 0.00 ;
                $transaction->transaction_type = $arr['type'];
+               $transaction->transaction_on = isset($arr['transaction_on'])? $arr['transaction_on'] : null;
                $transaction->notes = $arr['notes'];
                $transaction->created_by = $arr['user_id'];
                $transaction->save();

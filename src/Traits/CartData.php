@@ -84,7 +84,7 @@ trait CartData
                     }
                 }
 
-                if( $product->product_type === 'subscription' ){
+                if( $product->product_type === 'subscription' && $product->subscription_id ){
                     $eligibleSubscription = true;
                 }
 
@@ -93,21 +93,26 @@ trait CartData
 
             $weightDims = $this->calcWeightDimensions( $product, $variation );
 
-            $weights += (float) $weightDims['weight'];
-            $widths[] = (float) $weightDims['width'];
-            $heights[] = (float) $weightDims['height'];
-            $lengths[] = (float) $weightDims['depth'];
+            if( $product->product_type === 'physical' ){
+                $weights += (float) $weightDims['weight'];
+                $widths[] = (float) $weightDims['width'];
+                $heights[] = (float) $weightDims['height'];
+                $lengths[] = (float) $weightDims['depth'];
 
-            $estWeights += (float) $weightDims['estweight'];
-            $estWidths[] = (float) $weightDims['estwidth'];
-            $estHeights[] = (float) $weightDims['estheight'];
-            $estLengths[] = (float) $weightDims['estdepth'];
+                $estWeights += (float) $weightDims['estweight'];
+                $estWidths[] = (float) $weightDims['estwidth'];
+                $estHeights[] = (float) $weightDims['estheight'];
+                $estLengths[] = (float) $weightDims['estdepth'];
+            }
 
             $items[$i]->price = (float) $price;
             $items[$i]->subscription_price = (float) $subscriptionPrice;
             $items[$i]->line_total = (float) $price * (int) $item->qty;
+
+            $product->is_taxable = $product->is_taxable && ( $product->product_type === 'subscription' && !$product->tax_inclusive )? true : false;
+
             $items[$i]->product = $product;
-            $items[$i]->taxable_total = $product->is_taxable && $product->product_type !== 'subscription' ? $items[$i]->line_total : 0.00;
+            $items[$i]->taxable_total = $product->is_taxable? $items[$i]->line_total : 0.00;
             $items[$i]->variation = $variation;
             $items[$i]->variationFormatted = false;
             if( $items[$i]->variation_set ){

@@ -43,6 +43,8 @@ class Product extends Model
             'cost',
             'price',
             'is_taxable',
+            'tax_code',
+            'tax_inclusive',
             'contact_price',
             'contact_avail',
             'sale_price',

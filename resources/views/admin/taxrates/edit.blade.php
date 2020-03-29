@@ -34,6 +34,13 @@
                 </div>
 
                 <div class="form-row">
+                    <label class="label-col" for="inclusive">Inclusive</label>
+                    <div class="input-col has-checkbox">
+                        {{ $rate['inclusive']? 'Yes' : 'No' }}
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <label class="label-col" for="active">Active</label>
                     <div class="input-col has-checkbox">
                         {{ $rate['active']? 'Yes' : 'No' }}

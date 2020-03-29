@@ -116,10 +116,16 @@ function getOrderTotal( $order ){
     $credits = [];
     $debits = [];
     foreach( $order->transactions as $trans ){
-        if( $trans->transaction_type === 'credit' ){
-            $credits[] = (float) $trans->amount;
+        if( $trans->transaction_on === 'order' ){
+            if( $trans->transaction_type === 'credit' ){
+                $credits[] = (float) $trans->amount;
+            }
+            if( $trans->transaction_type === 'debit' ){
+                $debits[] = (float) $trans->amount;
+            }
         }
-        if( $trans->transaction_type === 'debit' ){
+
+        if( $trans->transaction_on === 'subscription' ){
             $debits[] = (float) $trans->amount;
         }
     }
