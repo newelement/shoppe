@@ -1,5 +1,6 @@
 <?php
 use Illuminate\Support\Facades\View;
+use Illuminate\Http\Request;
 use Newelement\Neutrino\Models\ObjectMedia;
 use Newelement\Neutrino\Models\Taxonomy;
 use Newelement\Neutrino\Models\TaxonomyType;
@@ -343,6 +344,36 @@ function getShoppeSettings(){
         $arr[ $setting->name ] = _parseSettingValue($setting);
     }
     return $arr;
+}
+
+function isEmptyProductTerm($term){
+    if( !$term['product_count'] > 0 ){
+        if( count($term['children']) > 0 ){
+            foreach( $term['children'] as $child ){
+                return isEmptyProductTerm($child);
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+function isInRouteSegment($slug){
+    $segments = request()->segments();
+    foreach( $segments as $segment ){
+        if( $slug === $segment ){
+            return true;
+        }
+    }
+    return false;
+}
+
+function isLastRouteSegment($slug){
+    $segments = request()->segments();
+    if( $slug === end($segments) ){
+        return true;
+    }
+    return false;
 }
 
 function _parseSettingValue($setting){

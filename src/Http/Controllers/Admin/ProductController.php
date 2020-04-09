@@ -119,7 +119,7 @@ class ProductController extends Controller
             $media->object_id = $product->id;
             $media->object_type = 'product';
             $media->featured = 1;
-            $media->file_path = parse_url($path, PHP_URL_PATH);
+            $media->file_path = $path;
             $media->save();
         }
 
@@ -329,7 +329,7 @@ class ProductController extends Controller
                 'object_id' => $product->id,
                 'object_type' => 'product',
                 'featured' => 1
-            ], [ 'file_path' => parse_url($path, PHP_URL_PATH) ]);
+            ], [ 'file_path' => $path ]);
         } else {
             ObjectMedia::where([
                 'object_id' => $product->id,

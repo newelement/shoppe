@@ -19,14 +19,14 @@ class ShoppeTaxonomyTableSeeder extends Seeder
             'slug' => 'product-category',
 			'show_on' => 'products'
         ],['sort' => 0]);
-        
+
         TaxonomyType::updateOrCreate([
             'title' => 'Brand',
             'slug' => 'brand',
             'hierarchical' => 0,
 			'show_on' => 'products'
         ],['sort' => 1]);
-        
+
         TaxonomyType::updateOrCreate([
             'title' => 'Model',
             'slug' => 'model',

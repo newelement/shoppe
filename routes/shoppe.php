@@ -58,6 +58,7 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
 
 Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
     Route::get('/'.config('shoppe.slugs.store_landing', 'products'), ['uses' => $namespacePrefix.'ProductController@index', 'as' => 'products']);
+    Route::get('/'.config('shoppe.slugs.store_landing', 'products').'/{any}', ['uses' => $namespacePrefix.'ProductController@index', 'as' => 'products'])->where('any', '.*');
     Route::get('/'.config('shoppe.slugs.product_single', 'products').'/{slug}', ['uses' => $namespacePrefix.'ProductController@get', 'as' => 'products']);
 
     Route::post('/cart', ['uses' => $namespacePrefix.'CartController@create', 'as' => 'cart']);

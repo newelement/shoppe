@@ -5,6 +5,131 @@
     }
 }
 
+.shoppe-breadcrumbs{
+    ul{
+        display: flex;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        align-items: center;
+        font-size: 16px;
+
+        li{
+            a{
+                text-decoration: none;
+                display: inline-block;
+                padding: 0 2px;
+                verical-align: middle;
+            }
+
+            .crumb-div{
+                display: inline-block;
+                padding: 2px 3px;
+                font-size: 22px;
+                vertical-align: unset;
+                line-height: .5;
+                color: #999;
+            }
+
+            .current-crumb{
+                display: inline-block;
+                padding-left: 3px;
+                verical-align: middle;
+                color: #888;
+            }
+        }
+    }
+}
+
+.product-term-list{
+    display: block;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+
+    li{
+        a{
+            display: block;
+            padding: 6px 12px;
+            text-decoration: none;
+            transition: background-color .25s ease;
+
+            &:hover{
+                background-color: #f3f3f3;
+            }
+        }
+
+        &.has-children{
+            &.open{
+                > ul{
+                    display: block;
+                }
+            }
+        }
+
+        ul{
+            display: none;
+            margin: 0;
+            padding: 0 0 0 18px;
+            list-style: none;
+
+            li{
+
+            }
+        }
+    }
+}
+
+.category-col{
+    padding: 12px;
+
+    .inner{
+        background-color: #f3f3f3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 150px;
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+        position: relative;
+
+        a{
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(000,000,000, .25);
+            transition: background-color .15s ease, color .25s ease;
+
+            &:hover{
+                background-color: rgba(000,000,000, 0);
+                color: #111;
+            }
+        }
+    }
+}
+
+.product-col{
+    padding: 12px;
+
+    .inner{
+        img{
+            max-width: 100%;
+            height: auto;
+        }
+    }
+}
+
 .section-card{
     background-color: #fff;
     border-radius: 3px;

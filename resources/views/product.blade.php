@@ -16,6 +16,11 @@ $socialImages = getImageSizes($data->social_image);
 @section('content')
     <div class="container">
         <div class="row">
+            <div class="col-md-12 pt-2 pb-2">
+                @include('shoppe::partials.breadcrumbs')
+            </div>
+        </div>
+        <div class="row">
             <div class="col-md-6 pt-4 pb-4">
 
                 <div class="product-images">

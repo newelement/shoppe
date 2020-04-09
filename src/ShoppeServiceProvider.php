@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\View;
 
 use Newelement\Shoppe\Facades\Shoppe as ShoppeFacade;
 use Newelement\Shoppe\Http\Middleware\ShoppeCustomerMiddleware;
+use Newelement\Shoppe\Composers\ShoppeBreadcrumbComposer;
 
 class ShoppeServiceProvider extends ServiceProvider
 {
@@ -72,6 +73,12 @@ class ShoppeServiceProvider extends ServiceProvider
 		$publishAssetsDirectory = __DIR__.'/../publishable/assets';
 
         $this->loadViewsFrom($viewsDirectory, 'shoppe');
+
+        View::composer('shoppe::products', ShoppeBreadcrumbComposer::class);
+        View::composer('shoppe::product', ShoppeBreadcrumbComposer::class);
+        View::composer('shoppe::cart', ShoppeBreadcrumbComposer::class);
+        View::composer('shoppe::checkout', ShoppeBreadcrumbComposer::class);
+        View::composer('shoppe::checkout-complete', ShoppeBreadcrumbComposer::class);
 
 		$this->publishes([$viewsDirectory => base_path('resources/views/vendor/shoppe')], 'views');
 		$this->publishes([ $publishAssetsDirectory => public_path('vendor/newelement/shoppe') ], 'public');
