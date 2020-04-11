@@ -142,20 +142,6 @@ function getNewOrderCount(){
     return Order::where('status', 1)->count();
 }
 
-function hasProductFilter(){
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'? 'https' : 'http';
-    $x = $protocol ."://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
-    $parsed = parse_url($x);
-    if( isset($parsed['query']) ){
-        $query = $parsed['query'];
-        parse_str($query, $params);
-        if( isset($params['brand']) || isset($params['category']) ){
-            return true;
-        }
-    }
-    return false;
-}
-
 function getStates(){
 
     $states = [
@@ -233,36 +219,6 @@ function getStates(){
     $merged = array_merge( $states, $canadian_states );
     return $merged;
 
-}
-
-function getProductFilters(){
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'? 'https' : 'http';
-    $x = $protocol ."://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
-    $parsed = parse_url($x);
-    $query = $parsed['query'];
-    parse_str($query, $params);
-    unset($params['page']);
-    return $params;
-}
-
-function clearProductFilter($filter){
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'? 'https' : 'http';
-    $x = $protocol ."://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
-    $parsed = parse_url($x);
-    $query = $parsed['query'];
-    parse_str($query, $params);
-    unset($params[$filter]);
-    $newQuery = http_build_query($params);
-    return $newQuery;
-}
-
-function strip_all_tags($string, $remove_breaks = false){
-    $string = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string );
-    $string = strip_tags( $string );
-    if ( $remove_breaks ) {
-        $string = preg_replace( '/[\r\n\t ]+/', ' ', $string );
-    }
-    return trim( $string );
 }
 
 /*
@@ -347,6 +303,13 @@ function getShoppeSettings(){
 }
 
 function isEmptyProductTerm($term){
+
+    $settings = view()->shared('shoppeSettings');
+
+    if( $settings['show_empty_categories'] ){
+        return true;
+    }
+
     if( !$term['product_count'] > 0 ){
         if( count($term['children']) > 0 ){
             foreach( $term['children'] as $child ){
@@ -356,6 +319,35 @@ function isEmptyProductTerm($term){
         return true;
     }
     return false;
+}
+
+function isEmptyProductCategory($term){
+
+    $settings = view()->shared('shoppeSettings');
+
+    if( $settings['show_empty_categories'] ){
+        return true;
+    }
+
+    if( !$term->product_count > 0 ){
+        if( $term->children->count() > 0 ){
+            foreach( $term->children as $child ){
+                return isEmptyProductTerm($child);
+            }
+        }
+        return true;
+    }
+
+    return false;
+}
+
+function isEmptyProductTag($term){
+    $settings = view()->shared('shoppeSettings');
+
+    if( $settings['show_empty_filters'] ){
+        return true;
+    }
+    return $term['product_count'] > 0 ? false : true;
 }
 
 function isInRouteSegment($slug){
@@ -375,6 +367,88 @@ function isLastRouteSegment($slug){
     }
     return false;
 }
+
+function getShoppeQueryString($type, $key, $value){
+    $currentQueries = request()->query();
+    $filterValue = '';
+
+    foreach( $currentQueries as $currKey => $curr ){
+        $curr = urldecode($curr);
+        if( $currKey === 'filters' ){
+            $filterSets = explode(',', $curr);
+            // Go through each set
+            foreach( $filterSets as $filterSetKey => $filterSet ){
+                $set = explode('|', $filterSet);
+                // Match a specific filter - ex. brand
+                if( $set[0] === $key ){
+                    if( isset($set[1]) ){
+                        $filterValues = explode(',', $set[1]);
+                        if( !in_array($value, $filterValues) ){
+                            // Add the new filter
+                            $filterValues[] = $value;
+                        }
+                        //
+                    }
+                }
+            }
+        }
+    }
+
+    //if( !array_key_exists($type, $currentQueries) ){
+        //$filterValue = $key.'|'.$value;
+    //}
+
+    $newQueries = [$type => $filterValue];
+    $allQueries = array_merge($currentQueries, $newQueries);
+
+    return request()->fullUrlWithQuery($allQueries);
+}
+
+function getProductFilters(){
+    $currentQueries = request()->query();
+    $items = [];
+    $filters = isset($currentQueries['filters']) ? $currentQueries['filters'] : [];
+
+    foreach( $filters as $name => $value ){
+        if( is_array($value)  ){
+            foreach( $value as $v ){
+                $items[$name][] = $v;
+            }
+        } else {
+            $items[$name][] = $value;
+        }
+    }
+
+    return $items;
+}
+
+function isCurrentFilter($filterKey, $filterValue){
+    $currentQueries = request()->query();
+    if( isset($currentQueries['filters']) && isset($currentQueries['filters'][$filterKey]) ){
+        foreach( $currentQueries['filters'][$filterKey] as $value ){
+            if( $filterValue === $value ){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function productQueryString(){
+    return request()->getQueryString()? '?'.request()->getQueryString() : '';
+}
+
+function clearFilter($filter)
+    {
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on'? 'https' : 'http';
+        $x = $protocol ."://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
+        $parsed = parse_url($x);
+        $query = $parsed['query'];
+        parse_str($query, $params);
+        unset($params[$filter]);
+        $newQuery = http_build_query($params);
+        return $newQuery;
+    }
 
 function _parseSettingValue($setting){
     $value = false;
@@ -418,4 +492,14 @@ function _parseSettingValue($setting){
     }
 
     return $value;
+}
+
+function strip_all_tags($string, $remove_breaks = false){
+    $pattern = '@<(script|style)[^>]*?>.*?</\\1>@si';
+    $string = preg_replace( $pattern, '', $string );
+    $string = strip_tags( $string );
+    if ( $remove_breaks ) {
+        $string = preg_replace( '/[\r\n\t ]+/', ' ', $string );
+    }
+    return trim( $string );
 }

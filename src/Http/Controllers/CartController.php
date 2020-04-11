@@ -138,6 +138,10 @@ class CartController extends Controller
         if( $request->ajax() ){
             return response()->json(['success' => true]);
         } else {
+            $skipCart = getShoppeSetting('skip_cart');
+            if( $skipCart ){
+                return redirect( '/checkout' );
+            }
             return redirect('/cart')->with('success', 'Item added to cart.');
         }
     }

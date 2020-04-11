@@ -24,25 +24,18 @@ $socialImages = getImageSizes($data->social_image);
     <div class="container">
         <div class="row">
 
-            <aside class="col-md-3 pt-2 pb-4 products-nav-sidebar">
-                @foreach( $data->menu_categories as $title => $categories )
-                <h3>{{ \Str::plural($title) }}</h3>
-                <ul class="product-term-list pr-3">
-                    @each( 'shoppe::partials.product-category', $categories, 'menuItem')
-                </ul>
-                @endforeach
-            </aside>
+            @include('shoppe::partials.product-nav')
 
             <div class="col-md-9 pt-2 pb-4">
                 <div class="row row-cols-4">
                 @foreach( $data->categories as $term )
-
+                    @if( !isEmptyProductCategory($term) )
                     <div class="col category-col mb-3">
                         <div class="inner" style="background-image: url('{{ $term->featuredImage? $term->featuredImage->file_path: ''}}')">
-                            <a href="{{ $term->url() }}">{{ $term->title }}</a>
+                            <a href="{{ $term->url() }}{{ productQueryString() }}">{{ $term->title }}</a>
                         </div>
                     </div>
-
+                    @endif
                 @endforeach
                 </div>
 

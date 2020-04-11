@@ -24,30 +24,34 @@ class ProductController extends Controller
 {
     use CustomFields;
 
+    private $data;
+    private $parentId = 0;
+    private $isTerm = false;
+    private $productsPerPage = 20;
+    private $filters = [];
+
+    function __construct()
+    {
+        $this->data = collect();
+        $this->filters = $this->getFilters();
+    }
+
     public function index(Request $request){
 
-        $data = collect();
-        $data->title = 'Products';
-        $data->keywords = '';
-        $data->meta_description = '';
-        $data->data_type = 'taxonomy';
-        $data->products = false;
-        $data->categories = false;
-        $data->menu_categories = [];
-        $data->product = false;
-        $isTerm = false;
-        $isProduct = false;
-
-        $where = [];
-        $order = 'title';
-        $dir = 'asc';
-
-        $targetRoute = '';
-        $parentId = 0;
+        $this->data->title = 'Products';
+        $this->data->keywords = '';
+        $this->data->meta_description = '';
+        $this->data->data_type = 'taxonomy';
+        $this->data->products = false;
+        $this->data->categories = false;
+        $this->data->menu_categories = [];
+        $this->data->product = false;
 
         $segments = $request->segments();
         $segmentCount = count($segments);
         $targetSegment = $segments[ $segmentCount - 1 ];
+
+        $this->data->settings = getShoppeSettings();
 
         if( $segmentCount > 1 ){
 
@@ -56,35 +60,14 @@ class ProductController extends Controller
             *
             */
             $parentTerm = Taxonomy::where('slug', $targetSegment)->first();
+
             if( $parentTerm ){
 
-                $isTerm = true;
-                $parentId = $parentTerm->id;
-                $productTaxonomy = TaxonomyType::where('slug', 'product-category')->first();
+                $this->isTerm = true;
+                $this->parentId = $parentTerm->id;
 
-                $data->categories = Taxonomy::where([
-                    'taxonomy_type_id' => $productTaxonomy->id,
-                    'parent_id' => $parentId
-                ])->get();
-
-                $data->menu_categories[$productTaxonomy->title] = $this->getMenuCategoriesArr($productTaxonomy);
-
-                $where = [
-                    'ot.taxonomy_type_id' => $productTaxonomy->id,
-                    'ot.taxonomy_id' => $parentId,
-                    'ot.object_type' => 'product',
-                    'products.status' => 'P'
-                ];
-
-                $products = Product::
-                                join('object_terms AS ot', 'ot.object_id', '=', 'products.id')
-                                ->where($where)
-                                ->select('products.*', 'products.id as id')
-                                ->orderBy($order, $dir)
-                                ->orderBy('title', 'asc')
-                                ->paginate(20);
-
-                $data->products = $products;
+                $this->getMenuCategories();
+                $this->buildTags();
 
             } else {
 
@@ -102,7 +85,7 @@ class ProductController extends Controller
                 $data = $product;
 
                 $CFields = getCustomFields('product_'.$product->id);
-                $data->custom_fields = $CFields;
+                $this->data->custom_fields = $CFields;
 
                 if($request->ajax()){
                     return response()->json(['data' => $data]);
@@ -116,30 +99,20 @@ class ProductController extends Controller
         } else {
 
             // IT'S THE ROOT PRODUCT PAGE
+            $this->getMenuCategories();
+            $this->buildTags();
 
-            $productTaxonomy = TaxonomyType::where('slug', 'product-category')->first();
-
-            $data->menu_categories[$productTaxonomy->title] = $this->getMenuCategoriesArr($productTaxonomy);
-
-            $data->categories = Taxonomy::where([
-                'taxonomy_type_id' => $productTaxonomy->id,
-                'parent_id' => $parentId
-            ])->get();
         }
 
-        // Get landing page setup option
-
         // Show prices ???
-
         // Just products ???
 
-        $brands = '';
-        $models = '';
+        view()->share('shoppeSettings', $this->data->settings);
 
         if($request->ajax()){
-            return response()->json(['data' => $data]);
+            return response()->json(['data' => $this->data]);
         } else {
-            return view( 'shoppe::'.config('shoppe.slugs.store_landing') , [ 'data' => $data ]);
+            return view( 'shoppe::'.config('shoppe.slugs.store_landing') , [ 'data' => $this->data ]);
         }
 
     }
@@ -171,6 +144,20 @@ class ProductController extends Controller
         return Product::where([ 'slug' => $slug, 'status' => 'P' ])->first();
     }
 
+    private function getMenuCategories()
+    {
+
+        $productTaxonomy = TaxonomyType::where('slug', 'product-category')->first();
+
+        $this->data->categories = $this->buildCategories($productTaxonomy->id);
+
+        $this->data->menu_categories[$productTaxonomy->title] = ['type' => 'hierarchical', 'items' => $this->getMenuCategoriesArr($productTaxonomy)];
+
+        if( $this->isTerm ){
+            $this->getTermProducts($productTaxonomy->id);
+        }
+    }
+
     private function getMenuCategoriesArr($productTaxonomy)
     {
 
@@ -193,7 +180,9 @@ class ProductController extends Controller
             $menuCategories = Taxonomy::where([
                 'parent_id' => 0,
                 'taxonomy_type_id' => $taxId
-            ])->orderBy('sort', 'asc')->orderBy('title', 'asc')->get();
+            ])->orderBy('sort', 'asc')
+            ->orderBy('title', 'asc')
+            ->get();
 
             $menuCategoriesArr = $this->categoriesArr($menuCategories);
 
@@ -202,12 +191,69 @@ class ProductController extends Controller
         return $menuCategoriesArr;
     }
 
+    private function buildCategories($taxonomyId)
+    {
+        $order = 'taxonomies.title';
+        $dir = 'asc';
+
+        $where = [
+            'taxonomies.taxonomy_type_id' => $taxonomyId,
+            'taxonomies.parent_id' => $this->parentId
+        ];
+
+        $query = Taxonomy::query();
+
+        /*
+        $i = 0;
+        foreach( $this->filters as $taxonomySlug => $termSlug ){
+            $i++;
+            $query = $query->join('object_terms AS ot'.$i, 'ot'.$i.'.taxonomy_id', '=', 'taxonomies.id');
+            $query = $query->join('products AS p', 'p.id', '=', 'ot'.$i.'.object_id');
+        }
+
+        $c = 0;
+        foreach( $this->filters as $taxonomySlug => $termSlug ){
+            $c++;
+            $taxonomy = TaxonomyType::where('slug', $taxonomySlug)->first();
+            $term = Taxonomy::where('slug', $termSlug)->first();
+            $query = $query->where([
+                'ot'.$c.'.taxonomy_type_id' => $taxonomy->id,
+                'ot'.$c.'.taxonomy_id' => $term->id,
+                'ot'.$c.'.object_type' => 'product'
+            ]);
+        }*/
+
+        $query = $query->where($where);
+
+        $query = $query->orderBy($order, $dir);
+        $categories = $query->get();
+
+        return $categories;
+    }
+
+    private function buildTags()
+    {
+        $order = 'title';
+        $dir = 'asc';
+
+        $productTags = getShoppeSetting('product_menu_tags');
+
+        foreach( $productTags as $productTag ){
+            $tag = TaxonomyType::where('slug', $productTag )->first();
+
+            $tags = Taxonomy::where([
+                'taxonomy_type_id' => $tag->id
+            ])->orderBy($order, $dir)->get();
+
+            //$this->data->tags[] = $tags;
+
+            $this->data->menu_categories[$tag->title] = ['type' => 'tag', 'items' => $this->tagsArr($tags)];
+        }
+    }
+
     private function categoriesArr($categories)
     {
         $data = [];
-
-        $order = 'title';
-        $dir = 'asc';
 
         foreach($categories as $category){
 
@@ -218,16 +264,112 @@ class ProductController extends Controller
                 'taxonomy_id' => $category->taxonomyType->id,
                 'slug' => $category->slug,
                 'url' => $category->url(),
-                'product_count' => Product::join('object_terms AS ot', 'ot.object_id', '=', 'products.id')
-                                    ->join('taxonomies AS t', 't.id', '=', 'ot.taxonomy_id')
-                                    ->where(['ot.taxonomy_id' => $category->id, 'status' => 'P'])
-                                    ->orderBy($order, $dir)
-                                    ->count(),
+                'product_count' => $this->getTermProductCount($category->id),
+
                 'children' => $this->categoriesArr($category->children),
             ];
         }
 
         return $data;
+    }
+
+    private function tagsArr($tags)
+    {
+        $data = [];
+
+        foreach($tags as $tag){
+
+            $data[] = [
+                'title' => $tag->title,
+                'id' => $tag->id,
+                'taxonomy_id' => $tag->taxonomyType->id,
+                'slug' => $tag->slug,
+                'taxonomy_slug' => $tag->taxonomyType->slug,
+                'product_count' => $this->getTermProductCount($tag->id)
+            ];
+        }
+        return $data;
+    }
+
+    private function getTermProductCount($termId)
+    {
+        $order = 'products.title';
+        $dir = 'asc';
+
+        $where = [
+            'ot.taxonomy_id' => $termId,
+            'products.status' => 'P',
+            'ot.object_type' => 'product'
+        ];
+
+        $count = Product::query();
+        $count = $count->join('object_terms AS ot', 'ot.object_id', '=', 'products.id');
+        $i = 0;
+        foreach( $this->filters as $slug => $value ){
+            $i++;
+            $count = $count->join('object_terms AS ot'.$i, 'ot'.$i.'.object_id', '=', 'products.id');
+        }
+        $count = $count->join('taxonomies AS t', 't.id', '=', 'ot.taxonomy_id');
+        $count = $count->where($where);
+
+        $c = 0;
+        foreach( $this->filters as $slug => $value ){
+            $c++;
+            $taxonomy = TaxonomyType::where('slug', $slug)->first();
+            $term = Taxonomy::where('slug', $value)->first();
+            $count = $count->where([
+                'ot'.$c.'.taxonomy_type_id' => $taxonomy->id,
+                'ot'.$c.'.taxonomy_id' => $term->id,
+                'ot'.$c.'.object_type' => 'product'
+            ]);
+        }
+        $count = $count->orderBy($order, $dir);
+        $results = $count->count();
+
+        return $results;
+    }
+
+    private function getTermProducts($taxonomyId)
+    {
+
+        $order = 'title';
+        $dir = 'asc';
+
+        $where = [
+            'ot.taxonomy_type_id' => $taxonomyId,
+            'ot.taxonomy_id' => $this->parentId,
+            'ot.object_type' => 'product'
+        ];
+
+        $query = Product::query();
+        $query = $query->join('object_terms AS ot', 'ot.object_id', '=', 'products.id');
+
+        $i = 0;
+        foreach( $this->filters as $slug => $value ){
+            $i++;
+            $query = $query->join('object_terms AS ot'.$i, 'ot'.$i.'.object_id', '=', 'products.id');
+        }
+
+        $query = $query->where($where);
+        $c = 0;
+        foreach( $this->filters as $slug => $value ){
+            $c++;
+            $taxonomy = TaxonomyType::where('slug', $slug)->first();
+            $term = Taxonomy::where('slug', $value)->first();
+            $query = $query->where([
+                'ot'.$c.'.taxonomy_type_id' => $taxonomy->id,
+                'ot'.$c.'.taxonomy_id' => $term->id,
+                'ot'.$c.'.object_type' => 'product'
+            ]);
+        }
+        $query = $query->where(['products.status' => 'P']);
+        $query = $query->select('products.*', 'products.id as id');
+        $query = $query->orderBy($order, $dir);
+        $query = $query->orderBy('title', 'asc');
+        $products = $query->paginate($this->productsPerPage);
+        //$products = $query->dd();
+
+        $this->data->products = $products;
     }
 
     private function isEmptyProductTerm($term){
@@ -240,6 +382,49 @@ class ProductController extends Controller
             return true;
         }
         return false;
+    }
+
+    private function getFilters()
+    {
+        $filters = [];
+        $currentQueries = request()->query();
+        if( !isset($currentQueries['filters']) ){
+            return $filters;
+        }
+        $filtersArr = $currentQueries['filters'];
+        foreach( $filtersArr as $name => $value ){
+            if( is_array($value)  ){
+                foreach( $value as $v ){
+                    $filters[$name][] = $v;
+                }
+            } else {
+                $filters[$name][] = $value;
+            }
+        }
+        return $filters;
+    }
+
+    public function delFilter(Request $request, $name, $value)
+    {
+        $uri = $request->session()->get('_previous');
+        $parsed = parse_url($uri['url']);
+
+        $params = request()->query();
+        $filters = isset($params['filters'])? $params['filters'] : [];
+
+        foreach( $filters as $filterName => $filterArr ){
+            foreach( $filterArr as $key => $filterValue ){
+                if( $filterName === $name && $filterValue === $value ){
+                    //dd($params, $filterName, $key);
+                    //dd($params[$filterName][$key]);
+                    unset($params['filters'][$filterName][$key]);
+                }
+            }
+        }
+
+        $newQuery = http_build_query($params);
+        $newUrl = strlen($newQuery)? $parsed['path'].'?'.$newQuery : $parsed['path'] ;
+        return redirect($newUrl);
     }
 
 }

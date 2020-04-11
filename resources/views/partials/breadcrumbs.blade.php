@@ -3,7 +3,7 @@
     @foreach ($breadcrumbs as $title => $url)
         <li class="{{ $loop->last ? 'is-active' : '' }}">
             @if (! $loop->last)
-            <a href="{{ url($url) }}">{{ $title }}</a> <span class="crumb-div">&rsaquo;</span>
+            <a href="{{ url($url) }}{{ productQueryString() }}">{{ $title }}</a> <span class="crumb-div">&rsaquo;</span>
             @else
             <span class="current-crumb">{{ $title }}</span>
             @endif

@@ -69,6 +69,9 @@ Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
     Route::get('/checkout', ['uses' => $namespacePrefix.'CheckoutController@index', 'as' => 'checkout']);
     Route::post('/checkout', ['uses' => $namespacePrefix.'CheckoutController@processCheckout', 'as' => 'checkout']);
     Route::get('/'.config('shoppe.slugs.order_complete', 'order-complete').'/{ref_id}', ['uses' => $namespacePrefix.'CheckoutController@checkoutSuccess', 'as' => 'order-complete']);
+
+    Route::get('/del-filter/{name}/{value}', $namespacePrefix.'ProductController@delFilter');
+
 });
 
 Route::group(['as' => 'shoppe.', 'middleware' => 'shoppe.customer'], function () use ( $namespacePrefix ) {
