@@ -657,6 +657,7 @@ class CheckoutController extends Controller
         $code = 200;
         $checkout = [];
         $shoppeSettings = getShoppeSettings();
+
         $rates = [ 'rates' => [] ];
 
         if( !$cart['eligible_shipping'] ){
@@ -709,7 +710,7 @@ class CheckoutController extends Controller
         if( $shoppeSettings['shipping_type'] === 'flat' ){
 
             $flat = [
-                'amount' => formatCurrency( $cart['flat_rate_total'] + (float) $shoppeSettings['flat_rate']),
+                'amount' => formatCurrency( $cart['flat_rate_total'] + $shoppeSettings['flat_rate']),
                 'carrier' => 'UPS',
                 'estimated_days' => '2-3',
                 'object_id' => null,
@@ -722,7 +723,7 @@ class CheckoutController extends Controller
 
         }
 
-        return response()->json(['rates' => $rates], $code);
+        return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
     }
 
     private function getPlanItems($items)

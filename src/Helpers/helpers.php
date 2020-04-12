@@ -460,7 +460,7 @@ function _parseSettingValue($setting){
             $value = $setting->string_value;
         break;
         case 'select' :
-            $value = json_decode($setting->options);
+            $value = $setting->string_value;
         break;
         case 'json' :
             $value = json_decode($setting->options);

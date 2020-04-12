@@ -33,6 +33,8 @@ class Shipping
         $height = $dims['height'] + 1;
         $weight = $cart['estimated_weight'] + 1;
 
+        $shoppeSettings = getShoppSettings();
+
         $parcel = [
             "weight"=> $weight,
             "mass_unit"=> "lb",
@@ -43,14 +45,15 @@ class Shipping
         ];
 
         $from = [
-            'name' => 'Neutrino',
-            'street1' => '130 Tannin Way',
-            'city' => 'Lexington',
-            'state' => 'NC',
-            'zip' => '27295',
-            'country' => 'US',
-            "phone" => "+1 555 341 9393",
-            "email" => "shippotle@goshippo.com"
+            'name' => $shoppeSettings['shipping_name'],
+            'street1' => $shoppeSettings['shipping_address'],
+            'street2' => $shoppeSettings['shipping_address2'],
+            'city' => $shoppeSettings['shipping_city'],
+            'state' => $shoppeSettings['shipping_state'],
+            'zip' => $shoppeSettings['shipping_postal'],
+            'country' => $shoppeSettings['shipping_country'],
+            "phone" => $shoppeSettings['shipping_phone'],
+            "email" => $shoppeSettings['shipping_email']
         ];
 
         $to = [

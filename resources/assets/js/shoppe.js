@@ -190,27 +190,28 @@ function validateShippingFields(){
     if( hasShippingAddress  && currentStep === 1 ){
         $checkoutErrorElement.innerHTML = '';
         getShipping().then( (data) => {
-
+            let rates = data.rates.rates;
+            let rateItems = '';
             if( data.eligible_shipping ){
-                shipping = data.rates[0].amount;
-                $q('.shipping-service-summary').innerHTML = rates.rates[0].carrier+' '+rates.rates[0].service;
-
-                $shippingRatesList.innerHTML = '';
-                let rateItems = '';
-                rates.rates.forEach( (v, i) => {
-                    let checked = i === 0? 'checked="checked"' : '';
-                    rateItems += '<li class="rate-item">';
-                        rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
-                        rateItems += '<label for="rate-item-'+i+'">';
-                            rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
-                            rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
-                        rateItems += '</label>';
-                    rateItems += '</li>';
-                });
+                if( rates.length ){
+                    shipping = rates[0].amount;
+                    $q('.shipping-service-summary').innerHTML = rates[0].carrier+' '+rates[0].service;
+                    $shippingRatesList.innerHTML = '';
+                    rates.forEach( (v, i) => {
+                        let checked = i === 0? 'checked="checked"' : '';
+                        rateItems += '<li class="rate-item">';
+                            rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
+                            rateItems += '<label for="rate-item-'+i+'">';
+                                rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
+                                rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
+                            rateItems += '</label>';
+                        rateItems += '</li>';
+                    });
+                }
                 $shippingRatesList.innerHTML = rateItems;
             }
 
-            $q('.shipping').innerHTML = shipping.toFixed(2);
+            $q('.shipping').innerHTML = parseFloat(shipping).toFixed(2);
 
             let $shippingRates = $$q('.shipping-rates');
             if( $shippingRates.length ){
@@ -586,11 +587,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     }
                 })[0];
 
+                console.log(thisVariation);
+
                 if( typeof thisVariation !== 'undefined' ){
                     if( thisVariation.price ){
                         $productPrice.innerHTML = '$'+thisVariation.price;
                     }
-                    if( thisVariation.stock && $productStock ){
+                    if( Number.isInteger(thisVariation.stock) && $productStock ){
                         $productStock.innerHTML = thisVariation.stock;
                     }
                     if( thisVariation.mfg_part_number && $productPartNumber ){
