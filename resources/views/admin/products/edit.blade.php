@@ -551,6 +551,7 @@
 
 @section('js')
 <script>
+window.object_user_edit = { object_type: 'product', id: <?php echo $product->id ?>, user_id: <?php echo auth()->user()->id; ?>, user_name: '<?php echo auth()->user()->name; ?>' };
 window.editorCss = '<?php echo getEditorCss(); ?>';
 </script>
 @endsection

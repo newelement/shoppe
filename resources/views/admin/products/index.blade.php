@@ -35,13 +35,24 @@
 						<tr>
                             <td data-label="Image">
                                 @if($product->featuredImage)
+                                <div class="object-edit-wrapper">
                                 <a href="/admin/product/{{ $product->id }}">
                                     <img src="{{ $product->featuredImage->file_path}}" alt="{{ $product->title }}">
                                 </a>
+                                <div class="object-editing {{ $product->editing && $product->editing->object_id === $product->id? '' : 'hide' }}" data-editing-object-type="product" data-editing-object-id="{{ $product->id }}">
+                                </div>
+                                </div>
                                 @endif
                             </td>
 							<td data-label="Title">
-								<a href="/admin/product/{{ $product->id }}">{{ $product->title }}</a>
+                                <div class="object-edit-wrapper">
+								    <a href="/admin/product/{{ $product->id }}">{{ $product->title }}</a>
+                                    <div class="object-editing {{ $product->editing && $product->editing->object_id === $product->id? '' : 'hide' }}" data-editing-object-type="product" data-editing-object-id="{{ $product->id }}">
+                                        @if( $product->editing && $product->editing->object_id === $product->id )
+                                        {{ $product->editing->user->name }} is currently editing.
+                                        @endif
+                                    </div>
+                                </div>
 							</td>
 							<td data-label="Status" class="text-center">
 								{{ _translateStatus($product->status) }}
@@ -72,4 +83,10 @@
 		</div>
 
 	</div>
+@endsection
+
+@section('js')
+<script>
+window.object_type = 'product';
+</script>
 @endsection

@@ -9,12 +9,12 @@
 
             <div class="settings-container">
                 <ul class="form-tabs">
-                    <li><a href="#tab-0" class="active">Cart</a></li>
-                    <li><a href="#tab-1">Shipping</a></li>
+                    <li><a href="#tab-0" class="{{ !request('tab') || request('tab') === 'cart' ? 'active' : '' }}">Cart</a></li>
+                    <li><a href="#tab-1" class="{{ request('tab') === 'shipping' ? 'active' : '' }}">Shipping</a></li>
                 </ul>
                 <div class="tabs-content">
 
-                    <div id="tab-0" class="tab-content active">
+                    <div id="tab-0" class="tab-content {{ !request('tab') || request('tab') === 'cart' ? 'active' : '' }}">
 
                         <div class="form-row">
                             <label class="label-col" for="add-cart-action">Add to cart action</label>
@@ -32,23 +32,24 @@
                         </div>
 
                     </div>
-                    <div id="tab-1" class="tab-content">
-                        <div class="form-row">
-                            <label class="label-col" for="">Test 0</label>
-                            <div class="input-col">
+                    <div id="tab-1" class="tab-content {{ request('tab') === 'shipping' ? 'active' : '' }}">
 
-                            </div>
-                        </div>
+                        <p class="setttings-section-links">
+                        <a href="/admin/shoppe-settings?tab=shipping&section=shipping_settings" class="{{ request('section') === 'shipping_settings' || !request('section')? 'active' : '' }}">Shipping Settings</a> - <a href="/admin/shoppe-settings?tab=shipping&section=shipping_classes" class="{{ request('section') === 'shipping_classes'? 'active' : '' }}">Shipping Classes</a> - <a href="/admin/shoppe-settings?tab=shipping&section=shipping_methods" class="{{ request('section') === 'shipping_methods'? 'active' : '' }}">Shipping Methods</a>
+                        </p>
 
-                        <div class="form-row">
-                            <label class="label-col" for="">Test 0</label>
-                            <div class="input-col">
-                                <select id="" name="test" data-toggle-to="toggle-field1">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                        </div>
+                        @if( request('section') === 'shipping_settings' || !request('section') )
+                            @include('shoppe::admin.partials.shipping-settings')
+                        @endif
+
+                        @if( request('tab') === 'shipping' && request('section') === 'shipping_methods' )
+                            @include('shoppe::admin.partials.shipping-methods-form')
+                        @endif
+
+                        @if( request('tab') === 'shipping' && request('section') === 'shipping_classes' )
+                            @include('shoppe::admin.partials.shipping-classes-form')
+                        @endif
+
                     </div>
 
                 </div>

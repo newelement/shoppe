@@ -143,4 +143,9 @@ class Product extends Model
 		return $path;
 	}
 
+    public function editing()
+    {
+        return $this->hasOne('Newelement\Neutrino\Models\ObjectEditing', 'object_id', 'id')->where('object_type', 'entry');
+    }
+
 }

@@ -54,6 +54,10 @@ Route::group(['prefix' => 'admin', 'as' => 'shoppe.', 'middleware' => 'admin.use
     Route::get('/shoppe/profit-report', $namespacePrefix.'Admin\ShoppeReportController@getProfit')->name('shoppe');
     Route::get('/shoppe-settings', $namespacePrefix.'Admin\ShoppeSettingsController@index')->name('shoppe');
 
+    Route::post('/shoppe-settings/shipping-classes', $namespacePrefix.'Admin\ShoppeSettingsController@createShippingClass')->name('shoppe');
+    Route::put('/shoppe-settings/shipping-classes', $namespacePrefix.'Admin\ShoppeSettingsController@updateShippingClasses')->name('shoppe');
+    Route::post('/shoppe-settings/shipping-methods', $namespacePrefix.'Admin\ShoppeSettingsController@createShippingMethod')->name('shoppe');
+    Route::put('/shoppe-settings/shipping-methods', $namespacePrefix.'Admin\ShoppeSettingsController@updateShippingMethods')->name('shoppe');
 });
 
 Route::group(['as' => 'shoppe.'], function () use ( $namespacePrefix ) {
