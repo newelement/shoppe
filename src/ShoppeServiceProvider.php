@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -84,6 +85,48 @@ class ShoppeServiceProvider extends ServiceProvider
 		$this->publishes([ $publishAssetsDirectory => public_path('vendor/newelement/shoppe') ], 'public');
         $router->aliasMiddleware('shoppe.customer', ShoppeCustomerMiddleware::class);
 		$this->loadMigrationsFrom(realpath(__DIR__.'/../migrations'));
+
+        // Register routes
+        $router->group([
+            'namespace' => 'Newelement\Shoppe\Http\Controllers',
+            'as' => 'shoppe.',
+            'middleware' => ['web']
+        ], function ($router) {
+            require __DIR__.'/../routes/web.php';
+        });
+
+        $router->group([
+            'namespace' => 'Newelement\Shoppe\Http\Controllers\Admin',
+            'prefix' => 'admin',
+            'as' => 'shoppe.',
+            'middleware' => 'admin.user'
+        ], function ($router) {
+            require __DIR__.'/../routes/admin.php';
+        });
+
+        $router->group([
+            'namespace' => 'Newelement\Shoppe\Http\Controllers',
+            'as' => 'shoppe.',
+            'middleware' => 'shoppe.customer'
+        ], function ($router) {
+            require __DIR__.'/../routes/customer.php';
+        });
+
+        $router->group([
+            'namespace' => 'Newelement\Shoppe\Http\Controllers',
+            'prefix' => 'api',
+            'as' => 'shoppe.',
+            'middleware' => 'api'
+        ], function ($router) {
+            require __DIR__.'/../routes/api.php';
+        });
+
+        $router->group([
+            'prefix' => 'api',
+            'middleware' => 'api'
+        ], function ($router) {
+            $router->post('stripe-webhooks', '\Spatie\StripeWebhooks\StripeWebhooksController');
+        });
 	}
 
 	/**
@@ -127,6 +170,5 @@ class ShoppeServiceProvider extends ServiceProvider
     {
         $this->commands(Commands\InstallCommand::class);
     }
-
 
 }

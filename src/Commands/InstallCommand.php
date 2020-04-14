@@ -64,26 +64,6 @@ class InstallCommand extends Command
         $process->setTimeout(null); // Setting timeout to null to prevent installation from stopping at a certain point in time
         $process->setWorkingDirectory(base_path())->run();
 
-		$this->info('Adding Shoppe routes to routes/web.php');
-
-        $routes_contents = $filesystem->get(base_path('routes/web.php'));
-
-        if (false === strpos($routes_contents, 'Shoppe::routes()')) {
-
-            $newContents = str_replace('Neutrino::routesPublic();', '', $routes_contents);
-            $filesystem->put(base_path('routes/web.php'), $newContents);
-
-            $filesystem->append(
-                base_path('routes/web.php'),
-                "\nShoppe::routes();\n"
-            );
-
-            $filesystem->append(
-                base_path('routes/web.php'),
-                "\nNeutrino::routesPublic();\n"
-            );
-        }
-
         $this->info('Seeding data into the database');
         $this->seed('ShoppeDatabaseSeeder');
 
