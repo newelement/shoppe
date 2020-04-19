@@ -233,25 +233,17 @@
                         </div>
 
                         <div class="form-row">
-                            <label class="label-col" for="product-shipping-rate-type">Shipping Rate Type</label>
-                                    <div class="input-col">
-                                        <div class="select-wrapper">
-                                            <select id="product-shipping-rate-type" name="shipping_rate_type">
-                                                <option value="global" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'global' ? 'selected="selected"' : '' }}>Use Global Value</option>
-                                                <option value="flat" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'flat' ? 'selected="selected"' : '' }}>Flat Rate</option>
-                                                <option value="estimated" {{ old('shipping_rate_type', $product->shipping_rate_type) === 'estimated' ? 'selected="selected"' : '' }}>Estimated</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <span class="input-notes"><span class="note">This setting will override the global shipping setting.</span></span>
-                        </div>
-
-                        <div id="shipping-rate-row" class="form-row" style="display: none">
-                            <label class="label-col" for="shipping-rate">Shipping Rate</label>
-                                    <div class="input-col">
-                                        <input type="number" id="shipping-rate" name="shipping_rate" value="{{ old('shipping_rate', $product->shipping_date) }}" step="0.01">
-                                    </div>
-                                    <span class="input-notes"><span class="note">This setting will override the global shipping setting.</span></span>
+                            <label class="label-col" for="product-shipping-rate-type">Shipping Class</label>
+                            <div class="input-col">
+                                <div class="select-wrapper">
+                                    <select id="product-shipping-rate-type" name="shipping_class_id">
+                                        <option value=""></option>
+                                    @foreach( $shipping_classes as $shippingClass )
+                                        <option value="{{$shippingClass->id}}" {{ $product->shipping_class_id === $shippingClass->id ? 'selected="selected"' : '' }}>{{$shippingClass->title}}</option>
+                                    @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                     </div>

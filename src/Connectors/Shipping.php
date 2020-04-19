@@ -181,4 +181,72 @@ class Shipping
         ];
     }
 
+    public function getServiceLevels()
+    {
+        $serviceLevels = [];
+
+        $serviceLevels[] = [
+            'carrier' => 'FedEx',
+            'levels' => [
+                'fedex_ground' => 'FedEx Ground®',
+                'fedex_home_delivery' => 'FedEx Home Delivery®',
+                'fedex_smart_post' => 'FedEx SmartPost®',
+                'fedex_2_day' => 'FedEx 2Day®',
+                'fedex_2_day_am' => 'FedEx 2Day® A.M.',
+                'fedex_express_saver' => 'FedEx Express Saver®',
+                'fedex_standard_overnight' => 'FedEx Standard Overnight®',
+                'fedex_priority_overnight' => 'FedEx Priority Overnight®',
+                'fedex_first_overnight' => 'FedEx First Overnight®',
+                'fedex_freight_priority' => 'FedEx Freight® Priority',
+                'fedex_next_day_freight' => 'FedEx Next Day Freight',
+                'fedex_freight_economy' => 'FedEx Freight® Economy',
+                'fedex_first_freight' => 'FedEx First Freight',
+                'fedex_international_economy' => 'FedEx International Economy®',
+                'fedex_international_priority' => 'FedEx International Priority®',
+                'fedex_international_first' => 'FedEx International First®',
+                'fedex_europe_first_international_priority' => 'FedEx International First®',
+                'fedex_international_priority_express' => 'FedEx International Priority Express',
+                'international_economy_freight' => 'FedEx International Economy® Freight',
+                'international_priority_freight' => 'FedEx International Priority® Freight'
+            ]
+        ];
+
+        $serviceLevels[] = [
+            'carrier' => 'UPS',
+            'levels' => [
+                'ups_standard' => 'Standard℠',
+                'ups_ground' => 'Ground',
+                'ups_saver' => 'Saver®',
+                'ups_3_day_select' => 'Three-Day Select®',
+                'ups_second_day_air' => 'Second Day Air®',
+                'ups_second_day_air_am' => 'Second Day Air A.M.®',
+                'ups_next_day_air' => 'Next Day Air®',
+                'ups_next_day_air_saver' => 'Next Day Air Saver®',
+                'ups_next_day_air_early_am' => 'Next Day Air Early A.M.®',
+                'ups_mail_innovations_domestic' => 'Mail Innovations (domestic)',
+                'ups_surepost' => 'Surepost',
+                'ups_surepost_lightweight' => 'Surepost Lightweight',
+                'ups_express' => 'Express®',
+                'ups_express_1200' => 'Express 12:00',
+                'ups_express_plus' => 'Express Plus®',
+                'ups_expedited' => 'Expedited®'
+            ]
+        ];
+
+        $serviceLevels[] = [
+            'carrier' => 'USPS',
+            'levels' => [
+                'usps_priority' => 'Priority Mail',
+                'usps_priority_express' => 'Priority Mail Express',
+                'usps_first' => 'First Class Mail/Package',
+                'usps_parcel_select' => 'Parcel Select',
+                'usps_priority_mail_international' => 'Priority Mail International',
+                'usps_priority_mail_express_international' => 'Priority Mail Express International',
+                'usps_first_class_package_international_service' => 'First Class Package International'
+            ]
+        ];
+
+        return $serviceLevels;
+    }
+
 }

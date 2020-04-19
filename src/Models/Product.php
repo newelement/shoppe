@@ -56,8 +56,7 @@ class Product extends Model
             'width',
             'height',
             'depth',
-            'shipping_rate_type',
-            'shipping_rate',
+            'shipping_class_id',
 			'status',
 			'created_at',
 			'updated_at',
@@ -66,6 +65,8 @@ class Product extends Model
 			'meta_description',
 			'social_image',
 			'protected',
+            'sitemap_change',
+            'sitemap_priority',
 			'created_by',
 			'updated_by'
 		];

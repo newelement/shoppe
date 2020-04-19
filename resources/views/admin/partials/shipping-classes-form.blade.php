@@ -4,7 +4,7 @@
         <div class="setting-fields">
             <h3>Shipping Classes</h3>
 
-            <form action="/admin/shoppe-settings/shipping-classes" method="post">
+            <form id="shipping-classes-form" action="/admin/shoppe-settings/shipping-classes" method="post">
                 @csrf
                 @method('put')
                 <div class="form-row-groups">
@@ -24,6 +24,13 @@
                                 <textarea id="add-shipping-class-desc-{{ $loop->index }}" name="shipping_classes[{{ $loop->index }}][notes]" style="height: 80px;">{{ $shippingClass->notes }}</textarea>
                             </div>
                         </div>
+
+                        <div class="form-row">
+                            <div class="text-right" style="width: 100%">
+                                <a class="delete-shipping-class" href="/admin/shoppe-settings/shipping-classes/delete/{{ $shippingClass->id }}">Delete "{{ $shippingClass->title }}" class</a>
+                            </div>
+                        </div>
+
                     </div>
                     @endforeach
                 </div>

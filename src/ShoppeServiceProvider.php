@@ -99,7 +99,7 @@ class ShoppeServiceProvider extends ServiceProvider
             'namespace' => 'Newelement\Shoppe\Http\Controllers\Admin',
             'prefix' => 'admin',
             'as' => 'shoppe.',
-            'middleware' => 'admin.user'
+            'middleware' => ['web', 'admin.user']
         ], function ($router) {
             require __DIR__.'/../routes/admin.php';
         });
@@ -107,7 +107,7 @@ class ShoppeServiceProvider extends ServiceProvider
         $router->group([
             'namespace' => 'Newelement\Shoppe\Http\Controllers',
             'as' => 'shoppe.',
-            'middleware' => 'shoppe.customer'
+            'middleware' => ['web', 'shoppe.customer']
         ], function ($router) {
             require __DIR__.'/../routes/customer.php';
         });

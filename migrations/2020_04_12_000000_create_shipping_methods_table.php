@@ -19,9 +19,13 @@ class CreateShippingMethodsTable extends Migration
             $table->string('service_level', 100)->nullable();
             $table->string('method_type', 10);
             $table->decimal('amount', 9, 2)->nullable();
+            $table->decimal('minimum_order_amount', 9, 2)->nullable();
             $table->string('estimated_days', 100)->nullable();
+            $table->string('free_estimated_days', 100)->nullable();
             $table->text('notes')->nullable();
+            $table->integer('sort')->default(0);
             $table->timestamps();
+            $table->index('sort');
         });
     }
 

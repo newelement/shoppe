@@ -19,6 +19,7 @@ use Newelement\Shoppe\Models\ProductAttribute;
 use Newelement\Shoppe\Models\ProductCategory;
 use Newelement\Shoppe\Models\ProductVariation;
 use Newelement\Shoppe\Models\ProductVariationAttribute;
+use Newelement\Shoppe\Models\ShippingClass;
 use Newelement\Neutrino\Models\ActivityLog;
 
 class ProductController extends Controller
@@ -46,12 +47,14 @@ class ProductController extends Controller
         $subscriptions = $payment->getSubscriptionPlans();
         $taxCodes = method_exists($taxConnector, 'getTaxCodes')? $taxConnector->getTaxCodes() : ['tax_codes' => false];
         $roles = Role::all();
+        $shipping_classes = ShippingClass::orderBy('title')->get();
     	return view('shoppe::admin.products.create', [
     	                                            'attributes' => $attributes,
     	                                            'field_groups' => $fieldGroups,
                                                     'roles' => $roles,
                                                     'tax_codes' => $taxCodes['tax_codes'],
-                                                    'subscriptions' => $subscriptions
+                                                    'subscriptions' => $subscriptions,
+                                                    'shipping_classes' => $shipping_classes
     	                                            ]);
 	}
 
@@ -89,8 +92,7 @@ class ProductController extends Controller
             $product->width = $request->width;
             $product->height = $request->height;
             $product->depth = $request->depth;
-            $product->shipping_rate_type = $request->shipping_rate_type;
-            $product->shipping_rate = $request->shipping_rate;
+            $product->shipping_class_id = $request->shipping_class_id;;
             $product->keywords = $request->keywords;
             $product->meta_description = $request->meta_description;
             $product->status = $request->status;
@@ -254,6 +256,7 @@ class ProductController extends Controller
         $taxCodes = method_exists($taxConnector, 'getTaxCodes')? $taxConnector->getTaxCodes() : ['tax_codes' => false];
         $terms = ObjectTerm::where('object_id', $id)->where('object_type', 'product')->get();
         $roles = Role::all();
+        $shipping_classes = ShippingClass::orderBy('title')->get();
 
         return view('shoppe::admin.products.edit', [
             'product' => $product,
@@ -262,7 +265,9 @@ class ProductController extends Controller
             'subscriptions' => $subscriptions,
             'tax_codes' => $taxCodes['tax_codes'],
             'attributes' => $attributes,
-            'roles' => $roles ]);
+            'roles' => $roles,
+            'shipping_classes' => $shipping_classes
+        ]);
     }
 
 
@@ -300,8 +305,7 @@ class ProductController extends Controller
             $product->width = $request->width;
             $product->height = $request->height;
             $product->depth = $request->depth;
-            $product->shipping_rate_type = $request->shipping_rate_type;
-            $product->shipping_rate = $request->shipping_rate;
+            $product->shipping_class_id = $request->shipping_class_id;
             $product->keywords = $request->keywords;
             $product->meta_description = $request->meta_description;
             $product->status = $request->status;

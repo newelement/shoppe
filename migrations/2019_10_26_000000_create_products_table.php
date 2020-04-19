@@ -47,8 +47,7 @@ class CreateProductsTable extends Migration
             $table->decimal('height', 10, 2)->nullable();
             $table->decimal('depth', 10, 2)->nullable();
 
-            $table->string('shipping_rate_type', 80);
-            $table->decimal('shipping_rate', 10 , 2)->nullable();
+            $table->bigInteger('shipping_class_id')->nullable();
 
 			$table->text('keywords')->nullable();
 			$table->text('meta_description')->nullable();

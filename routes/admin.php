@@ -50,7 +50,13 @@ Route::get('/shoppe/sales-report', 'ShoppeReportController@getSales')->name('sho
 Route::get('/shoppe/profit-report', 'ShoppeReportController@getProfit')->name('shoppe');
 Route::get('/shoppe-settings', 'ShoppeSettingsController@index')->name('shoppe');
 
+Route::post('/shoppe-settings/sort/shipping-methods', 'ShoppeSettingsController@updateShippingMethodsSort')->name('shoppe');
 Route::post('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@createShippingClass')->name('shoppe');
 Route::put('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@updateShippingClasses')->name('shoppe');
 Route::post('/shoppe-settings/shipping-methods', 'ShoppeSettingsController@createShippingMethod')->name('shoppe');
 Route::put('/shoppe-settings/shipping-methods', 'ShoppeSettingsController@updateShippingMethods')->name('shoppe');
+Route::get('/shoppe-settings/shipping-methods/{id}', 'ShoppeSettingsController@getShippingMethod')->name('shoppe');
+Route::post('/shoppe-settings/shipping-methods/{id}', 'ShoppeSettingsController@updateShippingMethod')->name('shoppe');
+Route::delete('/shoppe-settings/shipping-methods/{id}', 'ShoppeSettingsController@deleteShippingMethod')->name('shoppe');
+Route::get('/shoppe-settings/shipping-classes/delete/{id}', 'ShoppeSettingsController@deleteShippingClass')->name('shoppe');
+Route::post('/shoppe-settings/shipping-method-classes/{id}', 'ShoppeSettingsController@updateShippingMethodClasses')->name('shoppe');
