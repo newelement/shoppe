@@ -421,6 +421,20 @@
                                             </div>
                                         </div>
 
+                                        <div class="form-row">
+                                            <label class="label-col" for="shipping-class{{ $variation->id }}">Shipping Class</label>
+                                            <div class="input-col">
+                                                <div class="select-wrapper">
+                                                    <select name="variations[{{ $variation->id }}][shipping_class_id]" id="shipping-class{{ $variation->id }}">
+                                                        <option value="same_as_parent">Same as Parent</option>
+                                                        @foreach( $shipping_classes as $shippingClass )
+                                                            <option value="{{ $shippingClass->id }}" {{ $variation->shipping_class_id == $shippingClass->id? 'selected="selected"' : '' }} >{{ $shippingClass->title }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                 </div>
 
                             </div>
@@ -544,6 +558,8 @@
 @section('js')
 <script>
 window.object_user_edit = { object_type: 'product', id: <?php echo $product->id ?>, user_id: <?php echo auth()->user()->id; ?>, user_name: '<?php echo auth()->user()->name; ?>' };
+window.editorStyles = <?php echo json_encode(config('neutrino.editor_styles')) ?>;
 window.editorCss = '<?php echo getEditorCss(); ?>';
+window.shipping_classes = <?php echo $shipping_classes->toJson(); ?>;
 </script>
 @endsection

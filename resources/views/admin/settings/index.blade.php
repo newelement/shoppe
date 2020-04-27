@@ -9,28 +9,18 @@
 
             <div class="settings-container">
                 <ul class="form-tabs">
-                    <li><a href="#tab-0" class="{{ !request('tab') || request('tab') === 'cart' ? 'active' : '' }}">Cart</a></li>
+                    <li><a href="#tab-00" class="{{ !request('tab') || request('tab') === 'products' ? 'active' : '' }}">Products</a></li>
+                    <li><a href="#tab-0" class="{{ request('tab') === 'cart' ? 'active' : '' }}">Cart</a></li>
                     <li><a href="#tab-1" class="{{ request('tab') === 'shipping' ? 'active' : '' }}">Shipping</a></li>
+                    <li><a href="#tab-2" class="{{ request('tab') === 'taxes' ? 'active' : '' }}">Taxes</a></li>
                 </ul>
                 <div class="tabs-content">
 
-                    <div id="tab-0" class="tab-content {{ !request('tab') || request('tab') === 'cart' ? 'active' : '' }}">
-
-                        <div class="form-row">
-                            <label class="label-col" for="add-cart-action">Add to cart action</label>
-                            <div class="input-col">
-                                <div class="select-wrapper">
-                                    <select id="add-cart-action" name="add_cart_action" >
-                                        <option value="ajax">Keep user on product page and show slide-in cart</option>
-                                        <option value="redirect">Redirect user to the cart page</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <span class="input-notes">
-                                <span class="note">What happens when a user adds something to the cart?</span>
-                            </span>
-                        </div>
-
+                    <div id="tab-00" class="tab-content {{ !request('tab') || request('tab') === 'products' ? 'active' : '' }}">
+                        @include('shoppe::admin.partials.products-settings')
+                    </div>
+                    <div id="tab-0" class="tab-content {{ request('tab') === 'cart' ? 'active' : '' }}">
+                        @include('shoppe::admin.partials.cart-settings')
                     </div>
                     <div id="tab-1" class="tab-content {{ request('tab') === 'shipping' ? 'active' : '' }}">
 
@@ -49,9 +39,10 @@
                         @if( request('tab') === 'shipping' && request('section') === 'shipping_classes' )
                             @include('shoppe::admin.partials.shipping-classes-form')
                         @endif
-
                     </div>
-
+                    <div id="tab-2" class="tab-content {{ request('tab') === 'taxes' ? 'active' : '' }}">
+                        @include('shoppe::admin.partials.tax-settings')
+                    </div>
                 </div>
             </div>
         </div>

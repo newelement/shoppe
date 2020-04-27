@@ -208,6 +208,7 @@ class ProductController extends Controller
                     $variation->width = $variationData['width'];
                     $variation->height = $variationData['height'];
                     $variation->depth = $variationData['depth'];
+                    $variation->shipping_class_id = $variationData['shipping_class_id'] === 'same_as_parent'? $request->shipping_class_id : $variationData['shipping_class_id'];
                     $variation->save();
                 } catch( \Exception $e ) {
                     ActivityLog::insert([
@@ -434,6 +435,7 @@ class ProductController extends Controller
                     $variation->width = $variationData['width'];
                     $variation->height = $variationData['height'];
                     $variation->depth = $variationData['depth'];
+                    $variation->shipping_class_id = $variationData['shipping_class_id'] === 'same_as_parent'? $request->shipping_class_id : $variationData['shipping_class_id'] ;
                     $variation->save();
                 } catch( \Exception $e ){
                     ActivityLog::insert([

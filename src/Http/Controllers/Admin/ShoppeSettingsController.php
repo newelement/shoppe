@@ -7,6 +7,7 @@ use Newelement\Shoppe\Models\ShoppeSetting;
 use Newelement\Shoppe\Models\ShippingClass;
 use Newelement\Shoppe\Models\ShippingMethod;
 use Newelement\Shoppe\Models\ShippingMethodClass;
+use Newelement\Neutrino\Models\TaxonomyType;
 
 class ShoppeSettingsController extends Controller
 {
@@ -26,11 +27,147 @@ class ShoppeSettingsController extends Controller
         $settings->service_levels = $shippingConnector->getServiceLevels();
         $settings->edit_method = false;
 
+        $settings->shipping = ShoppeSetting::where('group', 'Shipping')->get();
+        $settings->cart = ShoppeSetting::where('group', 'Cart')->get();
+        $settings->product = ShoppeSetting::where('group', 'Products')->get();
+        $settings->taxes = ShoppeSetting::where('group', 'Taxes')->get();
+
+        $settings->taxonomies = TaxonomyType::whereNotIn('slug', ['product-category', 'category'])->orderBy('title')->get();
+
         if( $request->ajax() ){
             return response()->json(['settings' => $settings]);
         } else {
             return view('shoppe::admin.settings.index', ['settings' => $settings]);
         }
+    }
+
+    public function updateShippingSettings(Request $request)
+    {
+        $fields = $request->all();
+
+        $fields['disable_shipping'] = $request->boolean('disable_shipping');
+
+        foreach( $fields as $key => $value ){
+            $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Shipping' ])->first();
+
+            if($setting){
+                $type = $this->getSettingType($setting->type);
+
+                if( $type === 'options' ){
+                    $value = json_encode($value);
+                }
+
+                if( $type === 'bool' ){
+                        $value = $value? 1 : 0;
+                    }
+
+                if( $type ){
+                    ShoppeSetting::where(['name' => $key, 'group' => 'Shipping' ])->update([
+                        $type => $value
+                    ]);
+                }
+            }
+        }
+
+        return redirect('/admin/shoppe-settings?tab=shipping')->with('success', 'Shipping settings updated.');
+    }
+
+    public function updateCartSettings(Request $request)
+    {
+
+        $fields = $request->all();
+
+        $fields['skip_cart'] = $request->boolean('skip_cart');
+
+        foreach( $fields as $key => $value ){
+            $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Cart' ])->first();
+
+            if( $setting ){
+                $type = $this->getSettingType($setting->type);
+
+                if( $type === 'options' ){
+                    $value = json_encode($value);
+                }
+
+                if( $type === 'bool' ){
+                    $value = $value? 1 : 0;
+                }
+
+                if( $type ){
+                    ShoppeSetting::where(['name' => $key, 'group' => 'Cart' ])->update([
+                        $type => $value
+                    ]);
+                }
+            }
+        }
+
+        return redirect('/admin/shoppe-settings?tab=cart')->with('success', 'Cart settings updated.');
+    }
+
+    public function updateTaxSettings(Request $request)
+    {
+
+        $fields = $request->all();
+
+        //$fields[''] = $request->boolean('');
+
+        foreach( $fields as $key => $value ){
+            $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Taxes' ])->first();
+
+            if( $setting ){
+                $type = $this->getSettingType($setting->type);
+
+                if( $type === 'options' ){
+                    $value = json_encode($value);
+                }
+
+                if( $type === 'bool' ){
+                    $value = $value? 1 : 0;
+                }
+
+                if( $type ){
+                    ShoppeSetting::where(['name' => $key, 'group' => 'Taxes' ])->update([
+                        $type => $value
+                    ]);
+                }
+            }
+        }
+
+        return redirect('/admin/shoppe-settings?tab=taxes')->with('success', 'Tax settings updated.');
+    }
+
+    public function updateProductSettings(Request $request)
+    {
+        $fields = $request->all();
+
+        $fields['show_empty_filters'] = $request->boolean('show_empty_filters');
+        $fields['show_empty_categories'] = $request->boolean('show_empty_categories');
+        $fields['show_grid_price'] = $request->boolean('show_grid_price');
+        $fields['show_product_grid_pricing'] = $request->boolean('show_product_grid_pricing');
+        $fields['show_product_sorting'] = $request->boolean('show_product_sorting');
+        $fields['manage_stock'] = $request->boolean('manage_stock');
+
+        foreach( $fields as $key => $value ){
+            $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Products' ])->first();
+            if( $setting ){
+                $type = $this->getSettingType($setting->type);
+
+                if( $type === 'options' ){
+                    $value = json_encode($value);
+                }
+
+                if( $type === 'bool' ){
+                    $value = $value? 1 : 0;
+                }
+
+                if( $type ){
+                    ShoppeSetting::where(['name' => $key, 'group' => 'Products' ])->update([
+                        $type => $value
+                    ]);
+                }
+            }
+        }
+        return redirect('/admin/shoppe-settings?tab=products')->with('success', 'Product settings updated.');
     }
 
     public function getShippingMethod(Request $request, $id)
@@ -196,5 +333,43 @@ class ShoppeSettingsController extends Controller
         ShippingClass::where('id', $id)->delete();
 
         return redirect('/admin/shoppe-settings?tab=shipping&section=shipping_classes')->with('success', 'Shipping class deleted.');
+    }
+
+    private function getSettingType($settingType)
+    {
+        $type = false;
+        switch( $settingType ){
+            case 'string' :
+            case 'radio' :
+            case 'checkbox' :
+                $type = 'string_value';
+            break;
+                case 'select' :
+                    $type = 'string_value';
+                break;
+                case 'json' :
+                    $type = 'options';
+                break;
+                case 'float' :
+                    $type = 'float_value';
+                break;
+                case 'number' :
+                    $type = 'integer_value';
+                break;
+                case 'bool' :
+                    $type = 'bool_value';
+                break;
+                case 'text' :
+                    $type = 'text_value';
+                break;
+                case 'decimal' :
+                    $type = 'decimal_value';
+                break;
+                case 'date' :
+                    $type = 'date_value';
+                break;
+        }
+
+        return $type;
     }
 }

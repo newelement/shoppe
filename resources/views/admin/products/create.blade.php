@@ -341,7 +341,7 @@
 							<input type="text" name="tax_new[{{ $taxGroup->id }}]" placeholder="New {{ $taxGroup->title }}" style="margin-bottom: 4px">
 							<div class="term-group-select">
 								@foreach( $taxGroup->terms as $term )
-								<label><input type="checkbox" name="taxes[{{ $taxGroup->id }}][]" value="{{ $term->id }}"> {{ $term->title }}</label>
+								<label><input type="checkbox" name="taxes[{{ $taxGroup->id }}][]" value="{{ $term->id }}"> <span>{{ $term->title }}</span></label>
 								@endforeach
 							</div>
 						</div>
@@ -395,6 +395,8 @@
 
 @section('js')
 <script>
+window.editorStyles = <?php echo json_encode(config('neutrino.editor_styles')) ?>;
 window.editorCss = '<?php echo getEditorCss(); ?>';
+window.shipping_classes = <?php echo $shipping_classes->toJson() ?> ;
 </script>
 @endsection

@@ -52,6 +52,10 @@ Route::get('/shoppe-settings', 'ShoppeSettingsController@index')->name('shoppe')
 
 Route::post('/shoppe-settings/sort/shipping-methods', 'ShoppeSettingsController@updateShippingMethodsSort')->name('shoppe');
 Route::post('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@createShippingClass')->name('shoppe');
+Route::post('/shoppe-settings/products', 'ShoppeSettingsController@updateProductSettings')->name('shoppe');
+Route::post('/shoppe-settings/cart', 'ShoppeSettingsController@updateCartSettings')->name('shoppe');
+Route::post('/shoppe-settings/shipping', 'ShoppeSettingsController@updateShippingSettings')->name('shoppe');
+Route::post('/shoppe-settings/tax', 'ShoppeSettingsController@updateTaxSettings')->name('shoppe');
 Route::put('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@updateShippingClasses')->name('shoppe');
 Route::post('/shoppe-settings/shipping-methods', 'ShoppeSettingsController@createShippingMethod')->name('shoppe');
 Route::put('/shoppe-settings/shipping-methods', 'ShoppeSettingsController@updateShippingMethods')->name('shoppe');

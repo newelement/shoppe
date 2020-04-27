@@ -287,8 +287,19 @@ function productStock($productId){
     }
 }
 
-function getShoppeSetting($key){
-    $setting = ShoppeSetting::where('name', $key)->first();
+function getShoppeSetting($key, $settings = false){
+
+    $setting = false;
+
+    if( !$settings ){
+        $setting =  ShoppeSetting::where('name', $key)->first();
+    } else {
+        foreach( $settings as $row ){
+            if( $key === $row->name ){
+                $setting = $row;
+            }
+        }
+    }
     $value = _parseSettingValue($setting);
     return $value;
 }
@@ -453,7 +464,7 @@ function clearFilter($filter)
 function _parseSettingValue($setting){
     $value = false;
     if( !$setting ){
-        return $value;
+        return false;
     }
     switch( $setting->type ){
         case 'string' :

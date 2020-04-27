@@ -15,21 +15,11 @@ trait CartData
         $items = Cart::where('user_id', $cartUser)->orWhere('temp_user_id', $cartUser)->get();
         $eligibleShipping = false;
         $eligibleSubscription = false;
-        $estimatedShippingWeight = 0.00;
         $totalShippingWeight = 0.00;
-        $estimtedLength = 0.00;
-        $estimatedWidth = 0.00;
-        $estimtedHeight = 0.00;
-        $flatRate = 0.00;
         $length = 0.00;
         $width = 0.00;
         $height = 0.00;
         $weights = 0.00;
-
-        $estWeights = 0.00;
-        $estLengths = [0];
-        $estWidths = [0];
-        $estHeights = [0];
 
         $lengths = [0];
         $widths = [0];
@@ -55,7 +45,9 @@ trait CartData
                 $shortDesc = $product->content_short;
             }
 
+            // VARIATION
             if( $variation ){
+
                 $variationPrice = $variation->sale_price ? $variation->sale_price : $variation->price;
                 $productPrice = $product->sale_price ? $product->sale_price : $product->price;
                 $price = $variationPrice? $variationPrice : $productPrice;
@@ -72,9 +64,12 @@ trait CartData
                     $eligibleSubscription = true;
                 }
 
-                $flatRate += $variation->shipping_rate_type === 'flat'? (float) $variation->shipping_rate : 0.00;
+                $shippingClassId = $variation->shipping_class_id && $variation->shipping_class_id !== '' ? $variation->shipping_class_id : $product->shipping_class_id;
 
+
+            // BASE PRODUCT
             } else {
+
                 $price = $product->sale_price ? $product->sale_price : $product->price;
                 $subscriptionPrice = $product->product_type === 'subscription'? $price : 0.00;
 
@@ -88,7 +83,8 @@ trait CartData
                     $eligibleSubscription = true;
                 }
 
-                $flatRate += $product->shipping_rate_type === 'flat'? (float) $product->shipping_rate : 0.00;
+                $shippingClassId = $variation->shipping_class_id;
+
             }
 
             $weightDims = $this->calcWeightDimensions( $product, $variation );
@@ -98,11 +94,6 @@ trait CartData
                 $widths[] = (float) $weightDims['width'];
                 $heights[] = (float) $weightDims['height'];
                 $lengths[] = (float) $weightDims['depth'];
-
-                $estWeights += (float) $weightDims['estweight'];
-                $estWidths[] = (float) $weightDims['estwidth'];
-                $estHeights[] = (float) $weightDims['estheight'];
-                $estLengths[] = (float) $weightDims['estdepth'];
             }
 
             $items[$i]->price = (float) $price;
@@ -137,17 +128,11 @@ trait CartData
             $i++;
         }
 
-        $totalShippingWeight = $weights + $estWeights;
-        $estimatedShippingWeight = $estWeights;
+        $totalShippingWeight = $weights;
 
-        $estLength = max( $estLengths );
-        $estWidth = max( $estWidths );
-        $estHeight = max( $estHeights );
-
-        $length = max( $lengths ) + $estLength;
-        $width = max( $widths ) + $estWidth;
-        $height = max( $heights ) + $estHeight;
-
+        $length = max( $lengths );
+        $width = max( $widths );
+        $height = max( $heights );
 
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;
@@ -155,19 +140,12 @@ trait CartData
         $cartItems['subscription_total'] = $subscription_total;
         $cartItems['eligible_subscription'] = $eligibleSubscription;
         $cartItems['eligible_shipping'] = $eligibleShipping;
-        $cartItems['estimated_weight'] = $estimatedShippingWeight;
         $cartItems['total_weight'] = $totalShippingWeight;
-        $cartItems['flat_rate_total'] = $flatRate;
         $cartItems['dimensions'] = [
             'total' => [
                 'width' => $width,
                 'height' => $height,
                 'length' => $length
-            ],
-            'estimated' => [
-                'width' => $estWidth,
-                'height' => $estHeight,
-                'length' => $estLength
             ]
         ];
 
@@ -217,41 +195,12 @@ trait CartData
         $height = 0.00;
         $length = 0.00;
 
-        $estweight = 0.00;
-        $estwidth = 0.00;
-        $estheight = 0.00;
-        $estlength = 0.00;
+        $weight = $variation && $variation->weight > 0? $variation->weight : $product->weight;
+        $width = $variation && $variation->width > 0? $variation->width : $product->width;
+        $height = $variation && $variation->height > 0? $variation->height : $product->height;
+        $length = $variation && $variation->depth > 0? $variation->depth : $product->depth;
 
-        if(
-            $product->shipping_rate_type === 'estimated' ||
-                (
-                    $product->shipping_rate_type === 'global'
-                    && getShoppeSetting('shipping_rate_type') === 'estimated'
-                )
-        ){
-
-            $estweight = $variation && $variation->weight > 0? $variation->weight : $product->weight;
-            $estwidth = $variation && $variation->width > 0? $variation->width : $product->width;
-            $estheight = $variation && $variation->height > 0? $variation->height : $product->height;
-            $estlength = $variation && $variation->depth > 0? $variation->depth : $product->depth;
-
-        } elseif(
-            $product->shipping_rate_type === 'flat' ||
-                (
-                    $product->shipping_rate_type === 'global'
-                    && getShoppeSetting('shipping_rate_type') === 'flat'
-                )
-        ){
-            $weight = $variation && $variation->weight > 0? $variation->weight : $product->weight;
-            $width = $variation && $variation->width > 0? $variation->width : $product->width;
-            $height = $variation && $variation->height > 0? $variation->height : $product->height;
-            $length = $variation && $variation->depth > 0? $variation->depth : $product->depth;
-        }
-
-        return [
-                'estweight' => $estweight, 'estwidth' => $estwidth, 'estheight' => $estheight, 'estdepth' => $estlength,
-                'weight' => $weight, 'width' => $width, 'height' => $height, 'depth' => $length
-                ];
+        return [ 'weight' => $weight, 'width' => $width, 'height' => $height, 'depth' => $length ];
 
     }
 
