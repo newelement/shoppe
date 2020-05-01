@@ -4,14 +4,12 @@
 }
 
 .shoppe-breadcrumbs ul {
-  display: -webkit-box;
   display: flex;
   width: 100%;
   margin: 0;
   padding: 0;
   list-style: none;
-  -webkit-box-align: center;
-          align-items: center;
+  align-items: center;
   font-size: 16px;
 }
 
@@ -49,7 +47,6 @@
   display: block;
   padding: 6px 12px;
   text-decoration: none;
-  -webkit-transition: background-color .25s ease;
   transition: background-color .25s ease;
 }
 
@@ -74,12 +71,9 @@
 
 .category-col .inner {
   background-color: #f3f3f3;
-  display: -webkit-box;
   display: flex;
-  -webkit-box-align: center;
-          align-items: center;
-  -webkit-box-pack: center;
-          justify-content: center;
+  align-items: center;
+  justify-content: center;
   min-height: 150px;
   background-size: cover;
   background-position: center center;
@@ -89,12 +83,9 @@
 
 .category-col .inner a {
   text-decoration: none;
-  display: -webkit-box;
   display: flex;
-  -webkit-box-align: center;
-          align-items: center;
-  -webkit-box-pack: center;
-          justify-content: center;
+  align-items: center;
+  justify-content: center;
   color: #fff;
   font-weight: 700;
   font-size: 20px;
@@ -104,7 +95,6 @@
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.25);
-  -webkit-transition: background-color .15s ease, color .25s ease;
   transition: background-color .15s ease, color .25s ease;
 }
 
@@ -159,12 +149,10 @@
   position: absolute;
   top: 50%;
   right: 24px;
-  -webkit-transform: translateY(-50%);
-          transform: translateY(-50%);
+  transform: translateY(-50%);
 }
 
 .product-images-thumbs {
-  display: -webkit-box;
   display: flex;
   flex-wrap: wrap;
   margin: 0 0 24px 0;
@@ -187,7 +175,6 @@
 }
 
 .product-images-thumbs li a {
-  -webkit-transition: opacity .25s ease;
   transition: opacity .25s ease;
 }
 
@@ -199,7 +186,6 @@
   border: 0;
   background-color: transparent;
   padding: 0;
-  -webkit-transition: opacity .25s ease;
   transition: opacity .25s ease;
 }
 
@@ -214,11 +200,8 @@
 }
 
 .qty-cell form {
-  display: -webkit-box;
   display: flex;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
+  flex-direction: row;
 }
 
 .cart-qty {
@@ -250,8 +233,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  -webkit-transform: translate(-50%, -50%);
-          transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
   -webkit-animation: spinning 1.5s linear infinite;
           animation: spinning 1.5s linear infinite;
   z-index: 2;
@@ -264,12 +246,9 @@
 }
 
 .shipping-taxes-loader {
-  display: -webkit-box;
   display: flex;
   position: relative;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
+  flex-direction: row;
   flex-wrap: wrap;
 }
 
@@ -308,8 +287,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  -webkit-transform: translate(-50%, -50%);
-          transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
   -webkit-animation: spinning 1.5s linear infinite;
           animation: spinning 1.5s linear infinite;
   z-index: 2;
@@ -324,12 +302,9 @@
 }
 
 .checkout-total {
-  display: -webkit-box;
   display: flex;
   flex-wrap: wrap;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
+  flex-direction: row;
   padding-top: 24px;
   border-top: 1px solid #ececec;
   margin-bottom: 6px;
@@ -370,11 +345,8 @@
 }
 
 .cart-summary {
-  display: -webkit-box;
   display: flex;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
+  flex-direction: row;
   flex-wrap: wrap;
   font-size: 14px;
   color: #888;
@@ -386,14 +358,10 @@
 
 .cart-summary dt {
   width: 70%;
-  display: -webkit-box;
   display: flex;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
+  flex-direction: row;
   color: #777;
-  -webkit-box-pack: justify;
-          justify-content: space-between;
+  justify-content: space-between;
   padding-right: 12px;
 }
 
@@ -424,7 +392,6 @@
   border-radius: 3px;
   position: relative;
   opacity: 1;
-  -webkit-transition: opacity .5s ease;
   transition: opacity .5s ease;
 }
 
@@ -441,7 +408,6 @@
   padding: 0;
   visibility: hidden;
   opacity: 0;
-  -webkit-transition: opacity .5s ease;
   transition: opacity .5s ease;
 }
 
@@ -463,23 +429,17 @@
 }
 
 .checkout-step {
-  display: -webkit-box;
   display: flex;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
-  -webkit-box-align: center;
-          align-items: center;
+  flex-direction: row;
+  align-items: center;
   padding: 12px 0;
   color: #999;
   font-size: 1.25rem;
-  -webkit-transition: color .25s ease;
   transition: color .25s ease;
 }
 
 .checkout-step:first-child {
-  -webkit-box-flex: inherit;
-          flex-grow: inherit;
+  flex-grow: inherit;
 }
 
 .checkout-step .checkout-step-number {
@@ -491,7 +451,6 @@
   text-align: center;
   line-height: 29px;
   border: 1px solid #999;
-  -webkit-transition: border-color .35s ease, color .25s ease;
   transition: border-color .35s ease, color .25s ease;
 }
 
@@ -520,27 +479,20 @@
 }
 
 .checkout-steps .inner {
-  display: -webkit-box;
   display: flex;
-  -webkit-box-orient: horizontal;
-  -webkit-box-direction: normal;
-          flex-direction: row;
-  -webkit-box-align: center;
-          align-items: center;
-  -webkit-box-pack: center;
-          justify-content: center;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   max-width: 85%;
   margin: 0 auto;
 }
 
 .checkout-steps .step-div {
   display: block;
-  -webkit-box-flex: 1;
-          flex-grow: 1;
+  flex-grow: 1;
   height: 3px;
   background-color: #eee;
   margin: 0 12px;
-  -webkit-transition: background-color .35s ease;
   transition: background-color .35s ease;
 }
 
@@ -566,12 +518,9 @@
 }
 
 .checkout-set-actions {
-  display: -webkit-box;
   display: flex;
-  -webkit-box-pack: justify;
-          justify-content: space-between;
-  -webkit-box-align: center;
-          align-items: center;
+  justify-content: space-between;
+  align-items: center;
   padding: 24px 0;
 }
 
@@ -586,7 +535,6 @@
   border: 1px solid #ececec;
   cursor: pointer;
   color: #555;
-  -webkit-transition: background-color .25s ease;
   transition: background-color .25s ease;
 }
 
@@ -632,14 +580,12 @@
 }
 
 .shipping-rates-list li label {
-  display: -webkit-box;
   display: flex;
   padding: 10px 12px;
   border-radius: 3px;
   border: 1px solid #ececec;
   cursor: pointer;
   color: #555;
-  -webkit-transition: background-color .25s ease;
   transition: background-color .25s ease;
 }
 
@@ -712,7 +658,6 @@
 .customer-nav ul li a {
   display: block;
   padding: 6px 10px;
-  -webkit-transition: opacity .25s ease;
   transition: opacity .25s ease;
   text-decoration: none;
 }
@@ -746,7 +691,6 @@
   display: block;
   padding: 6px 32px 6px 12px;
   background-color: #fff;
-  -webkit-transition: background-color .25s ease;
   transition: background-color .25s ease;
   position: relative;
 }
@@ -762,8 +706,7 @@
   position: absolute;
   right: 10px;
   top: 50%;
-  -webkit-transform: translateY(-50%);
-          transform: translateY(-50%);
+  transform: translateY(-50%);
   width: 16px;
   height: 16px;
   z-index: 1;
@@ -798,14 +741,12 @@
 }
 
 .choose-stored-payment-list li label {
-  display: -webkit-box;
   display: flex;
   padding: 10px 12px;
   border-radius: 3px;
   border: 1px solid #ececec;
   cursor: pointer;
   color: #555;
-  -webkit-transition: background-color .25s ease;
   transition: background-color .25s ease;
 }
 
@@ -851,22 +792,18 @@
 
 @-webkit-keyframes spinning {
   0% {
-    -webkit-transform: translate(-50%, -50%) rotate(0deg);
-            transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   100% {
-    -webkit-transform: translate(-50%, -50%) rotate(360deg);
-            transform: translate(-50%, -50%) rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
 @keyframes spinning {
   0% {
-    -webkit-transform: translate(-50%, -50%) rotate(0deg);
-            transform: translate(-50%, -50%) rotate(0deg);
+    transform: translate(-50%, -50%) rotate(0deg);
   }
   100% {
-    -webkit-transform: translate(-50%, -50%) rotate(360deg);
-            transform: translate(-50%, -50%) rotate(360deg);
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
