@@ -33,6 +33,9 @@ class CheckoutController extends Controller
         $data->data_type = 'page';
         $data->items = $cart['items'];
         $data->sub_total = $cart['sub_total'];
+        $data->shipping_type = $cart['shipping_type'];
+        $data->minimum_order_amount = $cart['minimum_order_amount'];
+        $data->shipping_rates = $cart['shipping_rates'];
 
         $paymentConnector = app('Payment');
         $shippingConnector = app('Shipping');
@@ -664,8 +667,6 @@ class CheckoutController extends Controller
             return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
         }
 
-        if( $cart['estimated_weight'] > 0 ){
-
             $shipping_address_id = $request->shipping_address_id;
             if( !$shipping_address_id ){
                 $address = [
@@ -704,24 +705,6 @@ class CheckoutController extends Controller
             if( !$rates['success'] ){
                 $code = 500;
             }
-
-        }
-
-        if( $shoppeSettings['shipping_type'] === 'flat' ){
-
-            $flat = [
-                'amount' => formatCurrency( $cart['flat_rate_total'] + $shoppeSettings['flat_rate']),
-                'carrier' => 'UPS',
-                'estimated_days' => '2-3',
-                'object_id' => null,
-                'service' => 'Ground',
-                'service_id' => 'ground',
-                'rate_type' => 'flat'
-            ];
-
-            array_unshift( $rates['rates'], $flat );
-
-        }
 
         return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
     }

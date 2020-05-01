@@ -5,6 +5,9 @@ namespace Newelement\Shoppe\Traits;
 use Newelement\Shoppe\Models\Cart;
 use Newelement\Shoppe\Models\Product;
 use Newelement\Shoppe\Models\ProductVariation;
+use Newelement\Shoppe\Models\ShippingClass;
+use Newelement\Shoppe\Models\ShippingMethod;
+use Newelement\Shoppe\Models\ShippingMethodClass;
 use Auth;
 
 trait CartData
@@ -16,6 +19,9 @@ trait CartData
         $eligibleShipping = false;
         $eligibleSubscription = false;
         $totalShippingWeight = 0.00;
+        $shippingType = false;
+        $minimumOrderAmount = 0.00;
+        $shippingRates = [];
         $length = 0.00;
         $width = 0.00;
         $height = 0.00;
@@ -28,6 +34,17 @@ trait CartData
         $sub_total = 0.00;
         $taxable_total = 0.00;
         $subscription_total = 0.00;
+
+        $shippingClasses = ShippingClass::all();
+        $shippingMethods = ShippingMethod::orderBy('sort', 'asc')->get();
+
+        if( $shippingMethods->contains('method_type', 'free') ){
+            $shippingType = 'free';
+            $plucked = $shippingMethods->pluck('minimum_order_amount');
+            $minimumOrderAmount = (float) $plucked->first();
+
+            $shippingRates = $shippingMethods->where('method_type', 'free')->first();
+        }
 
         $i = 0;
         foreach($items as $item){
@@ -83,7 +100,7 @@ trait CartData
                     $eligibleSubscription = true;
                 }
 
-                $shippingClassId = $variation->shipping_class_id;
+                $shippingClassId = $product->shipping_class_id;
 
             }
 
@@ -128,6 +145,20 @@ trait CartData
             $i++;
         }
 
+        if( $shippingType === 'free' && $minimumOrderAmount > $sub_total ){
+            if( $shippingMethods->contains('method_type', 'estimated') ){
+                $shippingType = 'estimated';
+            } else if( $shippingMethods->contains('method_type', 'flat') ){
+                $shippingType = 'flat';
+                $shippingRates = [];
+                foreach( $shippingMethods as $method ){
+                    if( $method->type === 'flat' ){
+                        $shippingRates[] = $method;
+                    }
+                }
+            }
+        }
+
         $totalShippingWeight = $weights;
 
         $length = max( $lengths );
@@ -138,6 +169,9 @@ trait CartData
         $cartItems['sub_total'] = $sub_total;
         $cartItems['taxable_total'] = $taxable_total;
         $cartItems['subscription_total'] = $subscription_total;
+        $cartItems['shipping_type'] = $shippingType;
+        $cartItems['minimum_order_amount'] = $minimumOrderAmount;
+        $cartItems['shipping_rates'] = $shippingRates;
         $cartItems['eligible_subscription'] = $eligibleSubscription;
         $cartItems['eligible_shipping'] = $eligibleShipping;
         $cartItems['total_weight'] = $totalShippingWeight;

@@ -4,6 +4,11 @@
         <div class="setting-fields">
             <h3>Shipping Methods</h3>
 
+            <h4 style="margin:0">Note:</h4>
+            <p style="font-size: 16px;">
+            If free shipping is used all other shipping methods will be ignored. If estimated shipping it used, all flat rate methods will be ignored. If free shipping is used and an customer's order has not met the mininum order amount, the next used methods will be estimated or flat rate.
+            </p>
+
                 <div class="shipping-methods-group-list">
                 @foreach( $settings->shipping_methods as $key => $shippingMethod )
                 <div class="shipping-method-group" data-id="{{ $shippingMethod->id }}">
@@ -69,7 +74,7 @@
 
                             <div class="shipping-method-classes-row">
                                 <div class="shipping-method-class-title">{{ $shippingClass->title }}</div>
-                                <label>Cost <input type="number" name="classes[{{$shippingClass->id}}][amount]" value="{{ $classSet->amount }}"></label>
+                                <label>Cost <input type="number" name="classes[{{$shippingClass->id}}][amount]" value="{{ isset($classSet->amount)? $classSet->amount : '' }}"></label>
                             </div>
                             @endforeach
                         </div>

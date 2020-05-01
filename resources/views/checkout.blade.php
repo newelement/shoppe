@@ -144,14 +144,37 @@ $socialImages = getImageSizes($data->social_image);
                                     </div>
                                 </section>
 
-                            @if( $data->eligible_shipping )
+                            @php
+                            //dump($data)
+                            @endphp
+
+                            @if( $data->shipping_type === 'free' )
+                                <input type="hidden" name="shipping_rate" value="{{ $data->shipping_rates->id }}">
+                            @endif
+
+                            @if( $data->shipping_type === 'estimated' || $data->shipping_type === 'flat' )
                             <section class="section-card">
                                 <header>
-                                    <h3>Shipping Service</h3>
+                                    <h3>Shipping Method</h3>
                                 </header>
                                 <div class="inner">
-                                    <ul class="shipping-rates-list">
+                                    <ul class="shipping-rates-list" data-shipping-type="{{ $data['shipping_type'] }}">
+                                        @if( $data->shipping_type === 'estimated')
                                         <li class="enter-shipping-address-for-rates">Enter / choose your shipping address to see rates.</li>
+                                        @endif
+                                        @if( $data->shipping_type === 'flat' )
+                                            @foreach( $data->shipping_rates as $key => $rate )
+                                            <li class="rate-item">
+                                                <input type="radio" name="shipping_rate" id="rate-item-{{ $key }}" class="shipping-rates" data-rate-service="{{ $rate->title }}" data-rate="{{ $rate->amount }}" data-rate-service-id="{{ $rate->service_level }}" {{ $key === 0? 'checked' : '' }} value="{{ $rate->id }}">
+                                                <label for="rate-item-{{ $key }}">';
+                                                    <div class="rate-inner"><span class="rate-service">{{ $rate->title }}</span> &mdash; $<span class="rate-amount">{{ $rate->amount }}</span>
+                                                    @if( $rate->estimated_days )
+                                                    <div class="rate-estimated-days">Estimated {{ $rate->estimated_days }}</div></div>
+                                                    @endif
+                                                </label>
+                                            </li>
+                                            @endforeach
+                                        @endif
                                     </ul>
                                 </div>
                             </section>
@@ -380,9 +403,15 @@ $socialImages = getImageSizes($data->social_image);
                                     <dt>Subtotal</dt><dd>$<span class="sub-total">{{ formatCurrency($data->sub_total) }}</span></dd>
                                     <dt>
                                         Shipping &amp; Handling
-                                        <span class="shipping-service-summary"></span>
+                                        @if( $data->shipping_type === 'free' )
+                                        @endif
+                                        <span class="shipping-service-summary">
+                                        @if( $data->shipping_type === 'free' )
+                                        Free Shipping
+                                        @endif
+                                        </span>
                                     </dt><dd>$<span class="shipping">0.00</span></dd>
-                                    <dt>Est. Sales Taxes</dt><dd>$<span class="taxes">0.00</span></dd>
+                                    <dt>Est. Sales Tax</dt><dd>$<span class="taxes">0.00</span></dd>
                                 </dl>
 
                                 <div class="shipping-address-summary hide-me">

@@ -185,6 +185,12 @@ class ShoppeSettingsController extends Controller
         $settings->edit_method = true;
         $shipping_method = ShippingMethod::find($id);
 
+        $settings->cart = ShoppeSetting::where('group', 'Cart')->get();
+        $settings->product = ShoppeSetting::where('group', 'Products')->get();
+        $settings->taxes = ShoppeSetting::where('group', 'Taxes')->get();
+
+        $settings->taxonomies = TaxonomyType::whereNotIn('slug', ['product-category', 'category'])->orderBy('title')->get();
+
         if( $request->ajax() ){
             return response()->json(['settings' => $settings]);
         } else {
