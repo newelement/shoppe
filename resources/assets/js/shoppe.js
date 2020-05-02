@@ -194,19 +194,35 @@ function validateShippingFields(){
             let rateItems = '';
             if( data.eligible_shipping ){
                 if( rates.length ){
-                    shipping = rates[0].amount;
-                    $q('.shipping-service-summary').innerHTML = rates[0].carrier+' '+rates[0].service;
-                    $shippingRatesList.innerHTML = '';
-                    rates.forEach( (v, i) => {
-                        let checked = i === 0? 'checked="checked"' : '';
-                        rateItems += '<li class="rate-item">';
-                            rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
-                            rateItems += '<label for="rate-item-'+i+'">';
-                                rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
-                                rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
-                            rateItems += '</label>';
-                        rateItems += '</li>';
-                    });
+                    if( data.shipping_type === 'flat' ){
+                        shipping = rates[0].amount;
+                        $q('.shipping-service-summary').innerHTML = rates[0].title;
+                        $shippingRatesList.innerHTML = '';
+                        rates.forEach( (v, i) => {
+                            let checked = i === 0? 'checked="checked"' : '';
+                            rateItems += '<li class="rate-item">';
+                                rateItems += '<input type="radio" name="shipping_rate" data-rate-service="'+v.title+'" id="rate-item-'+i+'" class="shipping-rates" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_level+'" '+checked+' value="'+v.id+'">';
+                                rateItems += '<label for="rate-item-'+i+'">';
+                                    rateItems += '<div class="rate-inner"><span class="rate-service">'+v.title+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
+                                    rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' shipping</div></div>';
+                                rateItems += '</label>';
+                            rateItems += '</li>';
+                        });
+                    } else if( data.shipping_type === 'estimated' ) {
+                        shipping = rates[0].amount;
+                        $q('.shipping-service-summary').innerHTML = rates[0].carrier+' '+rates[0].service;
+                        $shippingRatesList.innerHTML = '';
+                        rates.forEach( (v, i) => {
+                            let checked = i === 0? 'checked="checked"' : '';
+                            rateItems += '<li class="rate-item">';
+                                rateItems += '<input type="radio" name="shipping_rate" id="rate-item-'+i+'" class="shipping-rates" data-rate-carrier="'+v.carrier+'" data-rate-service="'+v.service+'" data-rate="'+v.amount+'" data-rate-service-id="'+v.service_id+'" '+checked+' value="'+v.service_id+'">';
+                                rateItems += '<label for="rate-item-'+i+'">';
+                                    rateItems += '<div class="rate-inner"><span class="rate-service">'+v.carrier +' '+v.service+'</span> &mdash; $<span class="rate-amount">'+v.amount+'</span>';
+                                    rateItems += '<div class="rate-estimated-days">Estimated '+v.estimated_days+' day shipping</div></div>';
+                                rateItems += '</label>';
+                            rateItems += '</li>';
+                        });
+                    }
                 }
                 $shippingRatesList.innerHTML = rateItems;
             }

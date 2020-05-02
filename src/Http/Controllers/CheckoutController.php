@@ -667,6 +667,12 @@ class CheckoutController extends Controller
             return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
         }
 
+        if( $cart['shipping_type'] === 'flat' ){
+            $rates = [ 'rates' => $cart['shipping_rates'] ];
+        }
+
+        if( $cart['shipping_type'] === 'estimated' ){
+
             $shipping_address_id = $request->shipping_address_id;
             if( !$shipping_address_id ){
                 $address = [
@@ -706,7 +712,13 @@ class CheckoutController extends Controller
                 $code = 500;
             }
 
-        return response()->json(['rates' => $rates, 'eligible_shipping' => $cart['eligible_shipping'] ], $code);
+        }
+
+        return response()->json([
+            'rates' => $rates,
+            'shipping_type' => $cart['shipping_type'],
+            'eligible_shipping' => $cart['eligible_shipping']
+        ], $code);
     }
 
     private function getPlanItems($items)

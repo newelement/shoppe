@@ -21,6 +21,9 @@ trait CartData
         $totalShippingWeight = 0.00;
         $shippingType = false;
         $minimumOrderAmount = 0.00;
+        $hasFreeMethod = false;
+        $hasEstimatedMethod = false;
+        $hasFlatMethod = false;
         $shippingRates = [];
         $length = 0.00;
         $width = 0.00;
@@ -39,11 +42,18 @@ trait CartData
         $shippingMethods = ShippingMethod::orderBy('sort', 'asc')->get();
 
         if( $shippingMethods->contains('method_type', 'free') ){
+            $hasFreeMethod = true;
             $shippingType = 'free';
             $plucked = $shippingMethods->pluck('minimum_order_amount');
             $minimumOrderAmount = (float) $plucked->first();
 
             $shippingRates = $shippingMethods->where('method_type', 'free')->first();
+        }
+
+        if( $shippingMethods->contains('method_type', 'estimated') ){
+            $hasEstimatedMethod = true;
+        } else if( $shippingMethods->contains('method_type', 'flat') ){
+            $hasFlatMethod = true;
         }
 
         $i = 0;
@@ -145,17 +155,23 @@ trait CartData
             $i++;
         }
 
-        if( $shippingType === 'free' && $minimumOrderAmount > $sub_total ){
-            if( $shippingMethods->contains('method_type', 'estimated') ){
+        if( $shippingType !== 'free' ){
+            if( $hasEstimatedMethod ){
                 $shippingType = 'estimated';
-            } else if( $shippingMethods->contains('method_type', 'flat') ){
+            } else if( $hasFlatMethod ){
                 $shippingType = 'flat';
-                $shippingRates = [];
-                foreach( $shippingMethods as $method ){
-                    if( $method->type === 'flat' ){
-                        $shippingRates[] = $method;
-                    }
-                }
+                $shippingRates = $shippingMethods;
+                $eligibleShipping = true;
+            }
+        }
+
+        if( $shippingType === 'free' && $minimumOrderAmount > $sub_total ){
+            if( $hasEstimatedMethod ){
+                $shippingType = 'estimated';
+            } else if( $hasFlatMethod){
+                $shippingType = 'flat';
+                $shippingRates = $shippingMethods;
+                $eligibleShipping = true;
             }
         }
 
@@ -164,6 +180,10 @@ trait CartData
         $length = max( $lengths );
         $width = max( $widths );
         $height = max( $heights );
+
+        if( $shippingRates->count() === 1 ){
+            //$sub_total = $shippingRates[0]->amount + $sub_total;
+        }
 
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;

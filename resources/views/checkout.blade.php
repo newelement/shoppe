@@ -166,10 +166,10 @@ $socialImages = getImageSizes($data->social_image);
                                             @foreach( $data->shipping_rates as $key => $rate )
                                             <li class="rate-item">
                                                 <input type="radio" name="shipping_rate" id="rate-item-{{ $key }}" class="shipping-rates" data-rate-service="{{ $rate->title }}" data-rate="{{ $rate->amount }}" data-rate-service-id="{{ $rate->service_level }}" {{ $key === 0? 'checked' : '' }} value="{{ $rate->id }}">
-                                                <label for="rate-item-{{ $key }}">';
+                                                <label for="rate-item-{{ $key }}">
                                                     <div class="rate-inner"><span class="rate-service">{{ $rate->title }}</span> &mdash; $<span class="rate-amount">{{ $rate->amount }}</span>
                                                     @if( $rate->estimated_days )
-                                                    <div class="rate-estimated-days">Estimated {{ $rate->estimated_days }}</div></div>
+                                                    <div class="rate-estimated-days">Estimated {{ $rate->estimated_days }} shipping</div></div>
                                                     @endif
                                                 </label>
                                             </li>
@@ -410,7 +410,12 @@ $socialImages = getImageSizes($data->social_image);
                                         Free Shipping
                                         @endif
                                         </span>
-                                    </dt><dd>$<span class="shipping">0.00</span></dd>
+                                    </dt>
+                                    @if( $data->shipping_rates->count() === 1 )
+                                        <dd>$<span class="shipping">{{ $data->shipping_rates[0]->amount }}</span></dd>
+                                    @else
+                                        <dd>$<span class="shipping">0.00</span></dd>
+                                    @endif
                                     <dt>Est. Sales Tax</dt><dd>$<span class="taxes">0.00</span></dd>
                                 </dl>
 
