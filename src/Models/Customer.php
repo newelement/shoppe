@@ -30,13 +30,13 @@ class Customer extends Model
         return $insert;
     }
 
-    public static function createOrGet( $name, $email )
+    public static function createOrGet( $name, $email, $password = false )
     {
         $userExists = User::where( 'email', $email )->first();
 
         if( !$userExists ){
 
-            $newPassword = \Str::random(12);
+            $newPassword = $password? $password : \Str::random(12);
             $role = Role::where('name', 'customer')->first();
 
             $user = new User;

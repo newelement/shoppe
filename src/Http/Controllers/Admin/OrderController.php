@@ -40,26 +40,189 @@ class OrderController extends Controller
 
         $paymentConnector = app('Payment');
         $order->transaction_details = $paymentConnector->getCharge( $order->transaction_id );
+        $carriers = $this->getCarrierAccounts();
+        $serviceLevels = $this->getServiceLevels();
+        $parcelTemplates = $this->getParcelTemplates();
 
         if( $request->ajax() ){
             return response()->json($order);
         } else {
-            return view('shoppe::admin.orders.edit', ['order' => $order]);
+            return view('shoppe::admin.orders.edit', [
+                'order' => $order,
+                'carriers' => $carriers,
+                'service_levels' => $serviceLevels,
+                'parcel_templates' => $parcelTemplates
+            ]);
         }
     }
 
-    public function getShippingLabel(Order $order)
+    public function getShippingLabel(Request $request, Order $order)
     {
-        $shipping = app('Shipping');
-        $shippingInfo = $shipping->getShippingLabel( $order->shipping_object_id );
+        $validatedData = $request->validate([
+            'carrier' => 'required',
+            'service_level' => 'required',
+            'weight' => 'required',
+            'width' => 'required',
+            'height' => 'required',
+            'length' => 'required'
+        ]);
 
+        $shipping = app('Shipping');
+
+        $carrier = $request->carrier;
+        $service = $request->service_level;
+        $weight = $request->weight;
+        $width = $request->width;
+        $height = $request->height;
+        $length = $request->length;
+        $parcel = $request->parcel;
+        $markComplete = $request->boolean('mark_complete');
+        $serviceLabel = '';
+        $carrierLabel = '';
+        $orderMarkedComlete = '';
+
+        $shipping = app('Shipping');
+        $code = 200;
+
+        if( !method_exists($shipping, 'getShippingRate') ){
+            $estimate = ['success' => false, 'message' => 'No estimate method for this shipping connector.'];
+        }
+
+        if( method_exists($shipping, 'getServiceLabels') ){
+            $serviceLevels = $shipping->getServiceLevels();
+            foreach( $serviceLevels as $group ){
+                foreach( $group['levels'] as $key => $level ){
+                    if( $service === $key ){
+                        $serviceLabel = $level;
+                        $carrierLabel = $group['carrier'];
+                    }
+                }
+            }
+        }
+
+        $shippingAddress = $order->shippingAddress;
+
+        $args = [
+            'carrier' => $carrier,
+            'service' => $service,
+            'weight' => $weight,
+            'width' => $width,
+            'height' => $height,
+            'length' => $length,
+            'parcel' => $parcel? $parcel : false,
+            'shipping_name' => $shippingAddress->name,
+            'shipping_company_name' => $shippingAddress->company_name,
+            'shipping_street1' => $shippingAddress->address,
+            'shipping_street2' => $shippingAddress->address2,
+            'shipping_city' => $shippingAddress->city,
+            'shipping_state' => $shippingAddress->state,
+            'shipping_zip' => $shippingAddress->zipcode,
+            'shipping_country' => $shippingAddress->country
+        ];
+
+        $estimate = $shipping->getShippingRate($args);
+
+        if( !$estimate['success'] ){
+            return redirect()->back()->with('error', $estimate['message']);
+        }
+
+        if( count($estimate['rates']) === 0 ){
+            return redirect()->back()->with('error', 'Could not match shipping service. Make sure you have the chosen carrier enabled in your shipping provider\'s account.');
+        }
+
+        $rate = $estimate['rates'][0];
+
+        $shippingInfo = $shipping->getShippingLabel( $rate['object_id'] );
+
+        if( $markComplete ){
+            $order->status = 3;
+            $orderMarkedComlete = 'Order marked complete.';
+        }
+
+        $order->shipping_object_id = $rate['object_id'];
+        $order->shipping_weight = $weight;
+        $order->shipping_id = $service;
+        $order->shipping_max_width = $width;
+        $order->shipping_max_height = $height;
+        $order->shipping_max_length = $length;
+        $order->carrier = $carrierLabel;
+        $order->shipping_service = $serviceLabel;
         $order->tracking_number = $shippingInfo['tracking_number'];
         $order->label_url = isset( $shippingInfo['label_url'] ) ? $shippingInfo['label_url'] : null;
         $order->tracking_url = isset( $shippingInfo['tracking_url'] )? $shippingInfo['tracking_url'] : null;
         $order->save();
 
-        return response()->json($shippingInfo);
+        ActivityLog::insert([
+            'activity_package' => 'shoppe',
+            'activity_group' => 'order.label',
+            'object_type' => 'order',
+            'object_id' => $order->id,
+            'content' => 'Shipping label was generated on order '.$order->id,
+            'log_level' => 0,
+            'created_by' => auth()->user()->id,
+            'created_at' => now()
+        ]);
 
+        return redirect()->back()->with('success', 'Shipping label created. '.$orderMarkedComlete);
+
+    }
+
+    public function getShippingEstimate(Request $request)
+    {
+
+        $validatedData = $request->validate([
+            'carrier' => 'required',
+            'service' => 'required',
+            'weight' => 'required',
+            'width' => 'required',
+            'height' => 'required',
+            'length' => 'required'
+        ]);
+
+        $orderId = $request->order_id;
+        $carrier = $request->carrier;
+        $service = $request->service;
+        $weight = $request->weight;
+        $width = $request->width;
+        $height = $request->height;
+        $length = $request->length;
+        $parcel = $request->parcel;
+
+        $order = Order::find($orderId);
+
+        $shipping = app('Shipping');
+        $code = 200;
+
+        if( !method_exists($shipping, 'getShippingRate') ){
+            $code = 500;
+            $estimate = ['success' => false, 'message' => 'No estimate method for this shipping connector.'];
+        }
+
+        $shippingAddress = $order->shippingAddress;
+
+        $args = [
+            'carrier' => $carrier,
+            'service' => $service,
+            'weight' => $weight,
+            'width' => $width,
+            'height' => $height,
+            'length' => $length,
+            'parcel' => $parcel? $parcel : false,
+            'shipping_name' => $shippingAddress->name,
+            'shipping_company_name' => $shippingAddress->company_name,
+            'shipping_street1' => $shippingAddress->address,
+            'shipping_street2' => $shippingAddress->address2,
+            'shipping_city' => $shippingAddress->city,
+            'shipping_state' => $shippingAddress->state,
+            'shipping_zip' => $shippingAddress->zipcode,
+            'shipping_country' => $shippingAddress->country
+        ];
+
+        $estimate = $shipping->getShippingRate($args);
+        if( !$estimate['success'] ){
+            $code = 500;
+        }
+        return response()->json($estimate, $code);
     }
 
     public function updateStatus(Request $request, Order $order)
@@ -515,6 +678,40 @@ class OrderController extends Controller
         ]);
 
         return response()->json(['sent' => $sent]);
+    }
+
+    private function getCarrierAccounts()
+    {
+        $shippingConnector = app('Shipping');
+        if( !method_exists( $shippingConnector, 'getCarrierAccounts' ) ){
+            return [];
+        }
+        $accounts = $shippingConnector->getCarrierAccounts();
+        if( !$accounts['success'] ){
+            return response()->json(['message' => $accounts['message']], 500);
+        }
+
+        return $accounts['carriers'];
+    }
+
+    private function getServiceLevels()
+    {
+        $shippingConnector = app('Shipping');
+        if( !method_exists( $shippingConnector, 'getServiceLevels' ) ){
+            return [];
+        }
+        $serviceLevels = $shippingConnector->getServiceLevels();
+        return $serviceLevels;
+    }
+
+    private function getParcelTemplates()
+    {
+        $shippingConnector = app('Shipping');
+        if( !method_exists( $shippingConnector, 'getParcelTemplates' ) ){
+            return [];
+        }
+        $parcelTemplates = $shippingConnector->getParcelTemplates();
+        return $parcelTemplates;
     }
 
 }

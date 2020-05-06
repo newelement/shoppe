@@ -356,6 +356,10 @@
   border-bottom: 1px solid #ececec;
 }
 
+.cart-summary .form-text {
+  margin: 0;
+}
+
 .cart-summary dt {
   width: 70%;
   display: flex;
@@ -363,6 +367,11 @@
   color: #777;
   justify-content: space-between;
   padding-right: 12px;
+  margin-bottom: 12px;
+}
+
+.cart-summary dt:last-of-type {
+  margin-bottom: 0;
 }
 
 .cart-summary dd {
@@ -373,6 +382,16 @@
 
 .cart-summary dd:last-of-type {
   margin-bottom: 0;
+}
+
+.password-toggle {
+  display: block;
+  color: #333;
+}
+
+.password-toggle svg {
+  pointer-events: none;
+  fill: #333;
 }
 
 .shipping-service-summary {

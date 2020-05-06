@@ -1,4 +1,5 @@
 import axios from 'axios';
+import postalCodes from 'postal-codes-js';
 
 const HTTP = axios.create(axios.defaults.headers.common = {
     'X-Requested-With': 'XMLHttpRequest',
@@ -31,7 +32,6 @@ let $shoppeAddCartAlert = $q('#shoppe-product-alert'),
     $submitOrderBtn = $q('.submit-order-btn'),
     $sameAsShipping = $q('#same-as-shipping'),
     $newBillingAddress = $q('#new-billing-address'),
-    $newShippingAddress = $$q('input[name="shipping_address_option"]'),
     $newPaymentType = $$q('input[name="saved_payment"]'),
     $checkoutAdvBtns = $$q('.checkout-adv-btn'),
     $checkoutPrevBtns = $$q('.checkout-prev-btn'),
@@ -177,10 +177,24 @@ function validateShippingFields(){
     if( shippingAddressOption && shippingAddressOption === 'new'){
         $shippingAddressFields.forEach( function(el){
             if( !el.value.length  ){
-                console.log('NO SHIPPING FIELD VALUE');
                 hasShippingAddress = false;
             }
         });
+    }
+
+    let zipCode = document.getElementById('shipping-zip-code');
+    let countryCode = document.getElementById('shipping-country');
+    if( zipCode && countryCode ){
+        checkoutErrors = [];
+        if( zipCode.value !== '' && countryCode.value !== '' ){
+            let validPostalCode = postalCodes.validate(countryCode.value, zipCode.value);
+            if( typeof validPostalCode !== 'boolean' ){
+                hasShippingAddress = false;
+                checkoutErrors.push('Please enter a valid zip/postal code.');
+                zipCode.classList.add('border-danger');
+                showCheckoutErrors();
+            }
+        }
     }
 
     if( !shippingAddressOption ){
@@ -188,6 +202,7 @@ function validateShippingFields(){
     }
 
     if( hasShippingAddress  && currentStep === 1 ){
+
         $checkoutErrorElement.innerHTML = '';
         getShipping().then( (data) => {
             let rates = data.rates.rates;
@@ -274,6 +289,15 @@ function validateShippingFields(){
     }
 }
 
+function togglePasswordVisibility(id) {
+    var x = document.getElementById(id);
+    if (x.type === "password") {
+        x.type = "text";
+    } else {
+        x.type = "password";
+    }
+}
+
 function showCheckoutErrors(){
     let messages = '';
     $checkoutMessages.innerHTML = '';
@@ -310,6 +334,19 @@ function validateShipping(){
                     checkoutErrors.push(message);
                 }
             });
+
+            let zipCode = document.getElementById('shipping-zip-code');
+            let countryCode = document.getElementById('shipping-country');
+            if( zipCode && countryCode ){
+                if( zipCode.value !== '' && countryCode.value !== '' ){
+                    let validPostalCode = postalCodes.validate(countryCode.value, zipCode.value);
+                    if( typeof validPostalCode !== 'boolean' ){
+                        checkoutErrors.push('Please enter a valid zip/postal code.');
+                        zipCode.classList.add('border-danger');
+                    }
+                }
+            }
+
         }
     }
 
@@ -428,10 +465,12 @@ function submitOrder(){
 window.addEventListener('DOMContentLoaded', (e) => {
 
     let $productImageSelected = $q('.product-image-selected'),
+    $newShippingAddress = $$q('input[name="shipping_address_option"]'),
     $productThumbs = $$q('.product-image-thumb'),
     $addCartBtn = $$q('.add-to-cart-btn'),
     $productAttributeList = $$q('.product-attribute-list'),
     $productImageLink = $q('.product-image-selected a'),
+    $passwordToggles = $$q('.password-toggle'),
     $productPrice = $q('#price'),
     $productStock = $q('#stock'),
     $productPartNumber = $q('#mfg-part-number'),
@@ -671,10 +710,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
     if( $newShippingAddress.length ){
         $newShippingAddress.forEach( (input) => {
+            if( $newShippingAddress.length === 1 && input.checked && input.value === 'new_shipping_address' ){
+                shippingAddressOption = 'new';
+                shippingAddressId = false;
+            };
             input.addEventListener('change', (el) => {
                 if( el.target.checked && el.target.value === 'new_shipping_address' ){
                     $q('.new-shipping-address').style.display = 'block';
-                    shippingAddressOption = 'new';
                     shippingAddressId = false;
                 } else {
                     $q('.new-shipping-address').style.display = 'none';
@@ -725,6 +767,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 } else {
                     $q('.payment-section-fields').classList.add('hide');
                 }
+            });
+        });
+    }
+
+    if($passwordToggles.length){
+        $passwordToggles.forEach( (el) => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                let id = e.target.getAttribute('data-toggle-target');
+                togglePasswordVisibility(id);
             });
         });
     }

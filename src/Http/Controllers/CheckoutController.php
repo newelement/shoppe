@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use Newelement\Shoppe\Events\OrderCreated;
 use Newelement\Neutrino\Models\ActivityLog;
 use Newelement\Shoppe\Models\Subscription;
+use Newelement\Shoppe\Models\ShippingMethod;
 use Auth;
 
 class CheckoutController extends Controller
@@ -69,7 +70,9 @@ class CheckoutController extends Controller
             }
         }
 
-        $customer = Customer::where('user_id', auth()->user()->id )->first();
+        $userId = auth()->check()? auth()->user()->id : -1;
+
+        $customer = Customer::where('user_id', $userId )->first();
         if( $customer ){
             $paymentTypes = $paymentConnector->getStoredPaymentTypes($customer->customer_id);
             if( $paymentTypes['success'] ){
@@ -130,10 +133,25 @@ class CheckoutController extends Controller
             $validateArr
         );
 
+        $email = $request->email;
+        $billing_name = $request->cc_name;
+        $password = strlen($request->create_account_checkout) > 3? $request->create_account_checkout : false;
+        $user = Customer::createOrGet( $billing_name, $email, $password );
+
         // Check stock
         if( getShoppeSetting('manage_stock') ){
             $checkStock = $inventoryConnector->checkCartStock($items);
             if( !$checkStock['success'] ){
+
+                ActivityLog::insert([
+                    'activity_package' => 'shoppe',
+                    'activity_group' => 'cart.stock',
+                    'content' => $checkStock['message'],
+                    'log_level' => 5,
+                    'created_by' => $user->id,
+                    'created_at' => now()
+                ]);
+
                 if( $request->ajax() ){
                     return response()->json(['success' => false, 'message' =>  $checkStock['message'] ], 500);
                 } else {
@@ -142,15 +160,11 @@ class CheckoutController extends Controller
             }
         }
 
-
-        $email = $request->email;
-        $billing_name = $request->cc_name;
         $savedShipping = $request->shipping_address_option && $request->shipping_address_option !== 'new_shipping_address'? $request->shipping_address_option : false;
         $subTotal = $cart['sub_total'];
         $taxableTotal = $cart['taxable_total'];
         $subscriptionTotal = $cart['subscription_total'];
         $refId = sha1( uniqid().microtime().$subTotal.$email.env('APP_KEY') );
-        $user = Customer::createOrGet( $billing_name, $email );
         $customerId = false;
         $plans = [];
 
@@ -189,18 +203,32 @@ class CheckoutController extends Controller
         $this->eligibleShipping = $eligibleShipping;
         $this->email = $email;
         $this->user = $user;
+        $shippingType = $cart['shipping_type'];
 
         $shippingAddress = $this->processShippingAddress($request);
         // SAVE CUSTOMER'S SHIPPING ADDRESS
         $this->saveShippingAddress();
 
         $checkout['shipping_address'] = $shippingAddress;
-        $flatRate = $cart['flat_rate_total'];
-        $shippingAmount = $flatRate;
+        $checkout['shipping_type'] = $cart['shipping_type'];
+        $checkout['shipping_connector'] = $shippingConnector->connector_name;
 
-        if( $cart['estimated_weight'] && $eligibleShipping ){
+        if( $shippingType === 'flat' ){
+            $shippingRate = ShippingMethod::withTrashed()->find($request->shipping_rate);
+            if( $shippingRate ){
+                $shippingAmount = $shippingRate->amount + $cart['shipping_class_amount'];
+                $checkout['shipping_amount'] = $shippingAmount;
+                $shippingCarrierService = $this->getShippingCarrierService($shippingRate->service_level);
+                $checkout['shipping_carrier'] = $shippingCarrierService['carrier'];
+                $checkout['shipping_service'] = $shippingCarrierService['service'];
+                $checkout['shipping_service_id'] = $shippingRate->service_level;
+                $checkout['shipping_method_id'] = $request->shipping_rate;
+            }
+        }
+
+
+        if( $shippingType === 'estimated' && $cart['total_weight'] && $eligibleShipping ){
             $estimatedRate = $shippingConnector->getShippingRates( $checkout );
-            $checkout['shipping_connector'] = $shippingConnector->connector_name;
 
             if( !$estimatedRate['success'] ){
 
@@ -220,6 +248,10 @@ class CheckoutController extends Controller
                 }
             }
 
+            $checkout['shipping_weight'] = $cart['total_weight'];
+            $checkout['shipping_max_width'] = $cart['dimensions']['total']['width'];
+            $checkout['shipping_max_height'] = $cart['dimensions']['total']['height'];
+            $checkout['shipping_max_length'] = $cart['dimensions']['total']['length'];
             $checkout['shipping_amount'] = $estimatedRate['rates']['amount'];
             $checkout['shipping_carrier'] = $estimatedRate['rates']['carrier'];
             $checkout['shipping_service'] = $estimatedRate['rates']['service'];
@@ -227,7 +259,7 @@ class CheckoutController extends Controller
             $checkout['shipping_est_days'] = $estimatedRate['rates']['estimated_days'];
             $checkout['shipping_object_id'] = isset($estimatedRate['rates']['object_id'])? $estimatedRate['rates']['object_id'] : null ;
 
-            $shippingAmount = (float) $checkout['shipping_amount'] + (float) $flatRate;
+            $shippingAmount = (float) $checkout['shipping_amount'];
 
         }
 
@@ -423,10 +455,12 @@ class CheckoutController extends Controller
             $order->tax_connector = isset($checkout['tax_connector'])? $checkout['tax_connector'] : null;
             $order->status = 1;
             $order->address_book_id = $savedShipping? $savedShipping : $address->id;
+            $order->shipping_type = $checkout['shipping_type'];
             $order->carrier = isset( $checkout['shipping_carrier'] )? $checkout['shipping_carrier'] : null;
             $order->shipping_service = isset( $checkout['shipping_service'] )? $checkout['shipping_service'] : null;
             $order->shipping_id = isset( $checkout['shipping_service_id'] )? $checkout['shipping_service_id'] : null;
             $order->shipping_object_id = isset( $checkout['shipping_object_id'] )? $checkout['shipping_object_id'] : null;
+            $order->shipping_method_id = isset( $checkout['shipping_method_id'] )? $checkout['shipping_method_id'] : null;
             $order->shipping_amount = isset( $checkout['shipping_amount'] )? $checkout['shipping_amount'] : 0.00;
             $order->tax_amount = isset( $checkout['tax_amount'] )? $checkout['tax_amount'] : 0.00;
             $order->tax_rate = isset( $checkout['tax_rate'] )? $checkout['tax_rate'] : 0.00;
@@ -437,8 +471,8 @@ class CheckoutController extends Controller
             }
             $order->discount_code = isset( $checkout['discount_code'] )? $checkout['discount_code'] : null;
             $order->discount_amount = isset( $checkout['discount_amount'] )? $checkout['discount_amount'] : 0.00;
-            $order->created_by = Auth::check()? Auth::user()->id : $user->id;
-            $order->updated_by = Auth::check()? Auth::user()->id : $user->id;
+            $order->created_by = Auth::check()? auth()->user()->id : $user->id;
+            $order->updated_by = Auth::check()? auth()->user()->id : $user->id;
             $order->save();
 
             ActivityLog::insert([
@@ -486,8 +520,8 @@ class CheckoutController extends Controller
                 'qty' => $item->qty,
                 'image' => $item->image,
                 'variation' => $item->variationFormatted? $item->variationFormatted : null,
-                'created_by' => Auth::check()? Auth::user()->id : $user->id,
-                'updated_by' => Auth::check()? Auth::user()->id : $user->id,
+                'created_by' => Auth::check()? auth()->user()->id : $user->id,
+                'updated_by' => Auth::check()? auth()->user()->id : $user->id,
             ];
         }
 
@@ -729,5 +763,27 @@ class CheckoutController extends Controller
             }
         }
         return false;
+    }
+
+    private function getShippingCarrierService($serviceId)
+    {
+        $carrier = '';
+        $service = '';
+
+        $serviceLevels = app('Shipping')->getServiceLevels();
+
+        foreach( $serviceLevels as $serviceLevelGroups ){
+            foreach( $serviceLevelGroups['levels'] as $key => $level ){
+                if( $key === $serviceId ){
+                    $carrier = $serviceLevelGroups['carrier'];
+                    $service = $level;
+                }
+            }
+        }
+
+        return [
+            'carrier' => $carrier,
+            'service' => $service
+        ];
     }
 }

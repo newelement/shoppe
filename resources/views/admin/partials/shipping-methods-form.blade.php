@@ -6,7 +6,7 @@
 
             <h4 style="margin:0">Note:</h4>
             <p style="font-size: 16px;">
-            If free shipping is used all other shipping methods will be ignored. If estimated shipping it used, all flat rate methods will be ignored. If free shipping is used and an customer's order has not met the mininum order amount, the next used methods will be estimated or flat rate.
+            If free shipping is used all other shipping methods will be ignored. If estimated shipping is used, all flat rate methods will be ignored. If free shipping is used and a customer's order has not met the mininum order amount, the next used methods will be estimated or flat rate.
             </p>
 
                 <div class="shipping-methods-group-list">

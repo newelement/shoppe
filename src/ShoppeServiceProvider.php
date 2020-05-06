@@ -116,7 +116,7 @@ class ShoppeServiceProvider extends ServiceProvider
             'namespace' => 'Newelement\Shoppe\Http\Controllers',
             'prefix' => 'api',
             'as' => 'shoppe.',
-            'middleware' => 'api'
+            'middleware' => 'web'
         ], function ($router) {
             require __DIR__.'/../routes/api.php';
         });

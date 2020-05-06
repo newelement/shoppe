@@ -25,6 +25,7 @@ class CreateShippingMethodsTable extends Migration
             $table->text('notes')->nullable();
             $table->integer('sort')->default(0);
             $table->timestamps();
+            $table->softDeletes();
             $table->index('sort');
         });
     }

@@ -380,6 +380,10 @@
     margin-bottom: 24px;
     border-bottom: 1px solid #ececec;
 
+    .form-text{
+        margin: 0;
+    }
+
     dt{
         width: 70%;
         display: flex;
@@ -388,6 +392,11 @@
         //align-items: center;
         justify-content: space-between;
         padding-right: 12px;
+        margin-bottom: 12px;
+
+        &:last-of-type{
+            margin-bottom: 0;
+        }
     }
     dd{
         width: 30%;
@@ -396,6 +405,15 @@
         &:last-of-type{
             margin-bottom: 0;
         }
+    }
+}
+
+.password-toggle{
+    display: block;
+    color: #333;
+    svg{
+        pointer-events: none;
+        fill: #333;
     }
 }
 

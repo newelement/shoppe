@@ -725,6 +725,7 @@ class Payment
 
     private function stripeAmount($amount)
     {
+        $amount = number_format($amount, 2, '.', '');
         $amount = preg_replace('~\D~', '', $amount);
         $amount = intval($amount);
         return $amount;

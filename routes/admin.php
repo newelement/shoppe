@@ -21,10 +21,12 @@ Route::put('/orders/{order}/status', ['uses' => 'OrderController@updateStatus', 
 Route::get('/orders/{order}', ['uses' => 'OrderController@get', 'as' => 'orders']);
 Route::put('/orders/{order}/order-lines/{orderLine}/action', ['users' => 'OrderController@updateOrderLine', 'as' => 'shoppe']);
 Route::post('/order-lines/refund/{orderLine}', 'OrderController@refundOrderLine');
-Route::get('/shipping-label/{order}', 'OrderController@getShippingLabel');
 Route::get('/transaction-details/{transaction_id}', config('shoppe.payment_connector').'@getCharge');
 Route::post('/orders/{order}/note', 'OrderController@createNote');
 Route::get('/resend-reciept/{order}', 'OrderController@resendReceipt');
+
+Route::post('/shipping-label/{order}', 'OrderController@getShippingLabel');
+Route::post('/shipping-estimate', 'OrderController@getShippingEstimate');
 
 Route::get('/subscription-plans', ['uses' => 'SubscriptionController@indexPlans', 'as' => 'shoppe']);
 Route::get('/subscription-plan', ['uses' => 'SubscriptionController@showCreatePlan', 'as' => 'shoppe']);
@@ -55,6 +57,7 @@ Route::post('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@creat
 Route::post('/shoppe-settings/products', 'ShoppeSettingsController@updateProductSettings')->name('shoppe');
 Route::post('/shoppe-settings/cart', 'ShoppeSettingsController@updateCartSettings')->name('shoppe');
 Route::post('/shoppe-settings/shipping', 'ShoppeSettingsController@updateShippingSettings')->name('shoppe');
+Route::post('/shoppe-settings/checkout', 'ShoppeSettingsController@updateCheckoutSettings')->name('shoppe');
 Route::post('/shoppe-settings/tax', 'ShoppeSettingsController@updateTaxSettings')->name('shoppe');
 Route::put('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@updateShippingClasses')->name('shoppe');
 Route::post('/shoppe-settings/shipping-methods', 'ShoppeSettingsController@createShippingMethod')->name('shoppe');

@@ -49,10 +49,16 @@
 
                             @if( !$order->disabled() )
 
-                                <h3>Tracking</h3>
 
-                                @if( !$order->tracking_number )
-                                <a href="#" class="print-shipping-label-btn view-shipping-label-link" data-order-id="{{ $order->id }}" role="button"><i class="fal fa-barcode-read"></i> Generate Shipping Label</a>
+                                @if($order->tracking_number)
+                                <h3>Tracking</h3>
+                                @endif
+
+                                @if($order->tracking_number)
+                                <div class="shipping-parcel-info" style="margin-bottom: 24px;">
+                                    <strong>Weight:</strong> {{ $order->shipping_weight }} lbs<br>
+                                    <strong>Dimensions:</strong> {{ $order->shipping_max_width }}in. X {{$order->shipping_max_height}}in. X {{$order->shipping_max_length}}in.<br>
+                                </div>
                                 @endif
 
                                 <div class="tracking-label-info">
@@ -78,8 +84,105 @@
                                 &mdash; {{ $order->last_four }} / {{ $order->card_brand }}
 
                             </div>
+
                         </div>
                     </div>
+
+                    @if( !$order->disabled() && $order->status !== 'complete' )
+                        @if( $order->shipping_type === 'flat' || $order->shipping_type === 'free' || $order->shipping_type === 'estimated' )
+                            @if( !$order->tracking_number )
+                    <form action="/admin/shipping-label/{{ $order->id }}" method="post">
+                    @csrf
+
+                        <h3>Shipping</h3>
+                    <div class="order-addresses">
+                        <div class="order-shipping-details">
+
+                                        <div class="form-row">
+                                            <label class="label-col" for="carrier">Carrier</label>
+                                            <div class="input-col">
+                                                <div class="select-wrapper">
+                                                    <select id="carrier" name="carrier">
+                                                        @foreach( $carriers as $carrier )
+                                                        <option value="{{ $carrier['object_id'] }}" {{ strtolower(str_replace(' ','_',$order->carrier)) === $carrier['carrier'] ? 'selected="selected"' : '' }}>{{ strtoupper(str_replace('_',' ',$carrier['carrier'])) }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <label class="label-col" for="service">Service</label>
+                                            <div class="input-col">
+                                                <div class="select-wrapper">
+                                                    <select id="service" name="service_level">
+                                                    @foreach( $service_levels as $groups )
+                                                    <optgroup label="{{ $groups['carrier'] }}">
+                                                        @foreach( $groups['levels'] as $key => $service_level )
+                                                        <option value="{{ $key }}" {{ $key === $order->shipping_id? 'selected="selected"' : '' }}>{{ $service_level }}</option>
+                                                        @endforeach
+                                                    </optgroup>
+                                                    @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+
+                                        <div class="form-row">
+                                            <label class="label-col" for="parcel">Parcel</label>
+                                            <div class="input-col">
+                                                <div class="select-wrapper">
+                                                    <select id="parcel" name="parcel_template">
+                                                        <option value="">Optional ...</option>
+                                                        @foreach( $parcel_templates as $groups )
+                                                        <optgroup label="{{ $groups['carrier'] }}">
+                                                            @foreach( $groups['templates'] as $key => $parcel )
+                                                            <option value="{{ $key }}">{{ $parcel }}</option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <a href="#" class="get-shipping-estimate" role="button">Get Shipping Estimate</a> <i class="fal fa-spinner-third fa-spin estimate-loader hide"></i>
+
+                                        <div class="order-shipping-estimate" style="padding: 4px 0;">
+                                        </div>
+
+                        </div>
+                        <div class="order-payment-details">
+                            <div class="form-row">
+                                            <label class="label-col" for="weight">Weight</label>
+                                            <div class="input-col input-col-group">
+                                                <input id="weight" type="number" name="weight" value="{{ $order->shipping_weight }}"> lbs
+                                            </div>
+                                        </div>
+                            <div class="form-row">
+                                            <label class="label-col" for="width">Dimensions</label>
+                                            <div class="input-col input-col-group">
+                                                <input id="width" type="number" name="width" value="{{$order->shipping_max_width}}" placeholder="Width"> in.
+                                                <input id="height" type="number" name="height" value="{{$order->shipping_max_height}}" placeholder="Height"> in.
+                                                <input id="length" type="number" name="length" value="{{$order->shipping_max_length}}" placeholder="Length"> in.
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <label class="label-col" for="mark-complete" style="width: 60%">Mark Order Complete?</label>
+                                            <div class="input-col has-checkbox" style="width: 40%">
+                                                <label><input id="mark-complete" type="checkbox" name="mark_complete" checked value="1"> <span>Yes</span></label>
+                                            </div>
+                                        </div>
+
+                            <button type="search" class="btn" style="margin-right: 32px;"><i class="fal fa-barcode-read"></i> Generate Shipping Label</button>
+
+                        </div>
+                    </div>
+                    </form>
+                    @endif
+                        @endif
+                        @endif
                 </div>
             </div>
 

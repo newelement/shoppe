@@ -8,7 +8,6 @@ use Newelement\Shoppe\Models\ProductVariation;
 use Newelement\Shoppe\Models\ShippingClass;
 use Newelement\Shoppe\Models\ShippingMethod;
 use Newelement\Shoppe\Models\ShippingMethodClass;
-use Auth;
 
 trait CartData
 {
@@ -20,6 +19,7 @@ trait CartData
         $eligibleSubscription = false;
         $totalShippingWeight = 0.00;
         $shippingType = false;
+        $shippingClassAmount = 0.00;
         $minimumOrderAmount = 0.00;
         $hasFreeMethod = false;
         $hasEstimatedMethod = false;
@@ -127,7 +127,9 @@ trait CartData
             $items[$i]->subscription_price = (float) $subscriptionPrice;
             $items[$i]->line_total = (float) $price * (int) $item->qty;
 
-            $product->is_taxable = $product->is_taxable && ( $product->product_type === 'subscription' && !$product->tax_inclusive )? true : false;
+            if( $product->product_type === 'subscription' && !$product->tax_inclusive ){
+                $product->is_taxable = false;
+            }
 
             $items[$i]->product = $product;
             $items[$i]->taxable_total = $product->is_taxable? $items[$i]->line_total : 0.00;
@@ -181,9 +183,9 @@ trait CartData
         $width = max( $widths );
         $height = max( $heights );
 
-        if( $shippingRates->count() === 1 ){
+        //if( $shippingRates->count() === 1 ){
             //$sub_total = $shippingRates[0]->amount + $sub_total;
-        }
+        //}
 
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;
@@ -192,6 +194,7 @@ trait CartData
         $cartItems['shipping_type'] = $shippingType;
         $cartItems['minimum_order_amount'] = $minimumOrderAmount;
         $cartItems['shipping_rates'] = $shippingRates;
+        $cartItems['shipping_class_amount'] = $shippingClassAmount;
         $cartItems['eligible_subscription'] = $eligibleSubscription;
         $cartItems['eligible_shipping'] = $eligibleShipping;
         $cartItems['total_weight'] = $totalShippingWeight;
@@ -219,15 +222,14 @@ trait CartData
             $temp_cart_user = \Cookie::get('temp_cart_user');
         }
 
-        if( Auth::check() ){
+        if( auth()->check() ){
             Cart::where('temp_user_id', $temp_cart_user)->update([
-                'user_id' => Auth::user()->id
+                'user_id' => auth()->user()->id
             ]);
             \Cookie::queue(\Cookie::forget('temp_cart_user'));
         }
 
-        $cartUser = Auth::check()? Auth::user()->id : $temp_cart_user;
-
+        $cartUser = auth()->check()? auth()->user()->id : $temp_cart_user;
         return $cartUser;
     }
 
@@ -235,7 +237,7 @@ trait CartData
     public function deleteUserCart()
     {
         $cartUser = $this->getCartUser();
-        if( Auth::check() ){
+        if( auth()->check() ){
             Cart::where('user_id', $cartUser)->delete();
         } else {
             Cart::where('temp_user_id', $cartUser)->delete();

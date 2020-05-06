@@ -29,6 +29,7 @@ class ShoppeSettingsController extends Controller
 
         $settings->shipping = ShoppeSetting::where('group', 'Shipping')->get();
         $settings->cart = ShoppeSetting::where('group', 'Cart')->get();
+        $settings->checkout = ShoppeSetting::where('group', 'Checkout')->get();
         $settings->product = ShoppeSetting::where('group', 'Products')->get();
         $settings->taxes = ShoppeSetting::where('group', 'Taxes')->get();
 
@@ -102,6 +103,38 @@ class ShoppeSettingsController extends Controller
         }
 
         return redirect('/admin/shoppe-settings?tab=cart')->with('success', 'Cart settings updated.');
+    }
+
+    public function updateCheckoutSettings(Request $request)
+    {
+
+        $fields = $request->all();
+
+        $fields['create_account_checkout'] = $request->boolean('create_account_checkout');
+
+        foreach( $fields as $key => $value ){
+            $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Checkout' ])->first();
+
+            if( $setting ){
+                $type = $this->getSettingType($setting->type);
+
+                if( $type === 'options' ){
+                    $value = json_encode($value);
+                }
+
+                if( $type === 'bool' ){
+                    $value = $value? 1 : 0;
+                }
+
+                if( $type ){
+                    ShoppeSetting::where(['name' => $key, 'group' => 'Checkout' ])->update([
+                        $type => $value
+                    ]);
+                }
+            }
+        }
+
+        return redirect('/admin/shoppe-settings?tab=checkout')->with('success', 'Checkout settings updated.');
     }
 
     public function updateTaxSettings(Request $request)
@@ -186,6 +219,7 @@ class ShoppeSettingsController extends Controller
         $shipping_method = ShippingMethod::find($id);
 
         $settings->cart = ShoppeSetting::where('group', 'Cart')->get();
+        $settings->checkout = ShoppeSetting::where('group', 'Checkout')->get();
         $settings->product = ShoppeSetting::where('group', 'Products')->get();
         $settings->taxes = ShoppeSetting::where('group', 'Taxes')->get();
 

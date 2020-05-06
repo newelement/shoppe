@@ -126,7 +126,7 @@ $socialImages = getImageSizes($data->social_image);
                                             <div class="form-group row">
                                                 <label for="shipping-zip-code" class="col-sm-4 col-form-label">Zip / Postal Code</label>
                                                 <div class="col-sm-8">
-                                                    <input type="text" class="form-control shipping-address-field" id="shipping-zip-code" name="shipping_zipcode" value="{{ old('shipping_zipcode') }}" data-required data-required-message="Please enter your shipping zip code.">
+                                                    <input type="text" class="form-control shipping-address-field shipping-zip-code" id="shipping-zip-code" name="shipping_zipcode" value="{{ old('shipping_zipcode') }}" data-required data-required-message="Please enter your shipping zip code.">
                                                 </div>
                                             </div>
 
@@ -159,21 +159,8 @@ $socialImages = getImageSizes($data->social_image);
                                 </header>
                                 <div class="inner">
                                     <ul class="shipping-rates-list" data-shipping-type="{{ $data['shipping_type'] }}">
-                                        @if( $data->shipping_type === 'estimated')
+                                        @if( $data->shipping_type === 'estimated' || $data->shipping_type === 'flat')
                                         <li class="enter-shipping-address-for-rates">Enter / choose your shipping address to see rates.</li>
-                                        @endif
-                                        @if( $data->shipping_type === 'flat' )
-                                            @foreach( $data->shipping_rates as $key => $rate )
-                                            <li class="rate-item">
-                                                <input type="radio" name="shipping_rate" id="rate-item-{{ $key }}" class="shipping-rates" data-rate-service="{{ $rate->title }}" data-rate="{{ $rate->amount }}" data-rate-service-id="{{ $rate->service_level }}" {{ $key === 0? 'checked' : '' }} value="{{ $rate->id }}">
-                                                <label for="rate-item-{{ $key }}">
-                                                    <div class="rate-inner"><span class="rate-service">{{ $rate->title }}</span> &mdash; $<span class="rate-amount">{{ $rate->amount }}</span>
-                                                    @if( $rate->estimated_days )
-                                                    <div class="rate-estimated-days">Estimated {{ $rate->estimated_days }} shipping</div></div>
-                                                    @endif
-                                                </label>
-                                            </li>
-                                            @endforeach
                                         @endif
                                     </ul>
                                 </div>
@@ -199,9 +186,33 @@ $socialImages = getImageSizes($data->social_image);
                                             {{ auth()->user()->email }}
                                             @endif
                                             <input type="text" class="form-control @if(Auth::check() ) {{ 'hide' }}  @endif" id="email" name="email" value="{{ old('email', auth()->user()? auth()->user()->email : '' ) }}" data-required data-required-message="Please enter your email." required >
-                                            <span class="form-text text-muted">We use your email for your order receipt.</span>
+                                            <span class="form-text text-muted">We'll use your email for your order receipt.</span>
                                         </div>
                                     </div>
+
+                                    @if( !auth()->check() && getShoppeSetting('create_account_checkout') )
+                                    <div class="form-group row">
+                                        <label for="create-account-checkout" class="col-sm-4 col-form-label">Create Password</label>
+                                        <div class="col-sm-8">
+                                            <div class="input-group">
+                                                <input type="password" class="form-control" id="create-account-checkout" name="create_account_checkout">
+                                                <div class="input-group-append">
+                                                    <span class="input-group-text">
+                                                        <a href="#" class="password-toggle" data-toggle-target="create-account-checkout">
+                                                            <svg class="bi bi-eye-slash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                              <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 00-2.79.588l.77.771A5.944 5.944 0 018 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0114.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                                                              <path d="M11.297 9.176a3.5 3.5 0 00-4.474-4.474l.823.823a2.5 2.5 0 012.829 2.829l.822.822zm-2.943 1.299l.822.822a3.5 3.5 0 01-4.474-4.474l.823.823a2.5 2.5 0 002.829 2.829z"/>
+                                                              <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 001.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 018 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709z"/>
+                                                              <path fill-rule="evenodd" d="M13.646 14.354l-12-12 .708-.708 12 12-.708.708z" clip-rule="evenodd"/>
+                                                            </svg>
+                                                        </a>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span class="form-text text-muted">Enter a password if you would like to create an account. (optional)</span>
+                                        </div>
+                                    </div>
+                                    @endif
 
                                     @if( $data->payment_types )
                                         <ul class="choose-stored-payment-list">
@@ -403,15 +414,13 @@ $socialImages = getImageSizes($data->social_image);
                                     <dt>Subtotal</dt><dd>$<span class="sub-total">{{ formatCurrency($data->sub_total) }}</span></dd>
                                     <dt>
                                         Shipping &amp; Handling
-                                        @if( $data->shipping_type === 'free' )
-                                        @endif
                                         <span class="shipping-service-summary">
-                                        @if( $data->shipping_type === 'free' )
+                                        @if( $data->shipping_type === 'free' && $data->minimum_order_amount <= $data->sub_total )
                                         Free Shipping
                                         @endif
                                         </span>
                                     </dt>
-                                    @if( $data->shipping_rates->count() === 1 )
+                                    @if( $data->shipping_type === 'free' && $data->minimum_order_amount <= $data->sub_total )
                                         <dd>$<span class="shipping">{{ $data->shipping_rates[0]->amount }}</span></dd>
                                     @else
                                         <dd>$<span class="shipping">0.00</span></dd>
@@ -420,7 +429,6 @@ $socialImages = getImageSizes($data->social_image);
                                 </dl>
 
                                 <div class="shipping-address-summary hide-me">
-
                                 </div>
 
                                 <dl class="checkout-total">

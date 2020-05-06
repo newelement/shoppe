@@ -23,11 +23,18 @@ class CreateOrdersTable extends Migration
             $table->string('tax_connector', 100)->nullable();
             $table->tinyInteger('status');
             $table->bigInteger('address_book_id');
+            $table->string('shipping_type', 50)->nullable();
             $table->string('carrier', 50)->nullable();
             $table->string('shipping_service', 50)->nullable();
             $table->string('shipping_id', 50)->nullable();
+            $table->integer('shipping_method_id')->nullable();
             $table->string('shipping_object_id', 50)->nullable();
             $table->decimal('shipping_amount', 9, 2)->nullable();
+            $table->float('shipping_weight')->nullable();
+            $table->float('shipping_max_width')->nullable();
+            $table->float('shipping_max_height')->nullable();
+            $table->float('shipping_max_length')->nullable();
+            $table->decimal('charged_shipping_amount', 9, 2)->nullable();
             $table->string('tracking_number', 200)->nullable();
             $table->text('tracking_url')->nullable();
             $table->text('label_url')->nullable();

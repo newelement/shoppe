@@ -11,6 +11,7 @@
                 <ul class="form-tabs">
                     <li><a href="#tab-00" class="{{ !request('tab') || request('tab') === 'products' ? 'active' : '' }}">Products</a></li>
                     <li><a href="#tab-0" class="{{ request('tab') === 'cart' ? 'active' : '' }}">Cart</a></li>
+                    <li><a href="#tab-checkout" class="{{ request('tab') === 'checkout' ? 'active' : '' }}">Checkout</a></li>
                     <li><a href="#tab-1" class="{{ request('tab') === 'shipping' ? 'active' : '' }}">Shipping</a></li>
                     <li><a href="#tab-2" class="{{ request('tab') === 'taxes' ? 'active' : '' }}">Taxes</a></li>
                 </ul>
@@ -21,6 +22,9 @@
                     </div>
                     <div id="tab-0" class="tab-content {{ request('tab') === 'cart' ? 'active' : '' }}">
                         @include('shoppe::admin.partials.cart-settings')
+                    </div>
+                    <div id="tab-checkout" class="tab-content {{ request('tab') === 'checkout' ? 'active' : '' }}">
+                        @include('shoppe::admin.partials.checkout-settings')
                     </div>
                     <div id="tab-1" class="tab-content {{ request('tab') === 'shipping' ? 'active' : '' }}">
 
