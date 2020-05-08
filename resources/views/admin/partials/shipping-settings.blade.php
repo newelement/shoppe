@@ -5,15 +5,6 @@
     @csrf
 
         <div class="form-row">
-            <div class="label-col">Shipping Type</div>
-            <div class="input-col has-checkbox">
-                <label><input type="radio" name="shipping_type" value="flat" {{  getShoppeSetting('shipping_type', $settings->shipping) === "flat" || getShoppeSetting('shipping_type', $settings->shipping) === ""? 'checked="checked"' : '' }}> <span>Flat Rates</span></label>
-                <label><input type="radio" name="shipping_type" value="estimated" {{ getShoppeSetting('shipping_type', $settings->shipping) === "estimated"? 'checked="checked"' : '' }}> <span>Estimated</span></label>
-            </div>
-            <span class="input-notes"><span class="note">Estimated shipping requires a shipping vendor like <a href="https://shippo.com" target="_blank">Shippo</a> or <a href="https://shipstation.com" target="_blank">Shipstation</a></span></span>
-        </div>
-
-        <div class="form-row">
             <div class="label-col">Disable Shipping</div>
             <div class="input-col has-checkbox">
                 <label><input type="checkbox" name="disable_shipping" value="1" {{  getShoppeSetting('disable_shipping', $settings->shipping) === 1? 'checked="checked"' : '' }}> <span>Yes</span></label>
@@ -71,6 +62,48 @@
             <div class="input-col">
                 <input id="shipping-postal" type="text" name="shipping_postal" value="{{ getShoppeSetting('shipping_postal', $settings->shipping) }}">
             </div>
+        </div>
+
+        <hr>
+
+        <div class="form-row">
+            <label class="label-col" for="shipping-weight">Shipping Weight Padding</label>
+            <div class="input-col input-col-group">
+                <input id="shipping-weight" type="number" name="shipping_weight_padding" value="{{ getShoppeSetting('shipping_weight_padding', $settings->shipping) }}" placeholder="1.5"> lbs
+            </div>
+            <span class="input-notes">
+                <span class="note">Add extra weight to estimated shipping estimates. Lbs.</span>
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label class="label-col" for="shipping-width">Shipping Width Padding</label>
+            <div class="input-col input-col-group">
+                <input id="shipping-width" type="number" name="shipping_width_padding" value="{{ getShoppeSetting('shipping_width_padding', $settings->shipping) }}" placeholder="1.5"> in.
+            </div>
+            <span class="input-notes">
+                <span class="note">Add extra width to estimated shipping estimates. Inches.</span>
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label class="label-col" for="shipping-height">Shipping Height Padding</label>
+            <div class="input-col input-col-group">
+                <input id="shipping-height" type="number" name="shipping_height_padding" value="{{ getShoppeSetting('shipping_height_padding', $settings->shipping) }}" placeholder="1.5"> in.
+            </div>
+            <span class="input-notes">
+                <span class="note">Add extra height to estimated shipping estimates. Inches.</span>
+            </span>
+        </div>
+
+        <div class="form-row">
+            <label class="label-col" for="shipping-height">Shipping Length Padding</label>
+            <div class="input-col input-col-group">
+                <input id="shipping-length" type="number" name="shipping_length_padding" value="{{ getShoppeSetting('shipping_length_padding', $settings->shipping) }}" placeholder="1.5"> in.
+            </div>
+            <span class="input-notes">
+                <span class="note">Add extra length to estimated shipping estimates. Inches.</span>
+            </span>
         </div>
 
         <button type="submit" class="btn">Save Shipping Settings</button>

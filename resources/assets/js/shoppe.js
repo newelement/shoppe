@@ -12,6 +12,7 @@ let $q = document.querySelector.bind(document),
     modalMessage = '',
     thisVariation = {},
     checkoutErrors = [],
+    checkoutError = false,
     currentStep = 1,
     shippingAddressOption = false,
     shippingAddressId = false,
@@ -125,7 +126,9 @@ let getShipping = async () => {
     .catch(e => {
         console.log('shipping error', e);
         $shippingTaxesLoader.classList.remove('loading');
-        logCheckoutError('shipping', e.message);
+        logCheckoutError('shipping', e.message, false);
+        checkoutError = true;
+        document.getElementById('checkout-step-2-btn').classList.add('disabled');
     });
 };
 
@@ -154,8 +157,10 @@ let getTaxes = async (shipping) => {
     })
     .catch(e => {
         $shippingTaxesLoader.classList.remove('loading');
-        console.log('taxes error', e);
-        logCheckoutError('taxes', e.message);
+        console.log('taxes error', e.response.data.message);
+        logCheckoutError('taxes', false, e.response.data.message);
+        checkoutError = true;
+        document.getElementById('checkout-step-2-btn').classList.add('disabled');
     });
 };
 
@@ -169,6 +174,8 @@ function calcOrderTotal(){
 }
 
 function validateShippingFields(){
+    checkoutError = false;
+    document.getElementById('checkout-step-2-btn').classList.remove('disabled');
     let hasShippingAddress = true;
     if($shippingTaxesLoader){
         $shippingTaxesLoader.classList.add('loading');
@@ -193,6 +200,8 @@ function validateShippingFields(){
                 checkoutErrors.push('Please enter a valid zip/postal code.');
                 zipCode.classList.add('border-danger');
                 showCheckoutErrors();
+                checkoutError = true;
+                document.getElementById('checkout-step-2-btn').classList.add('disabled');
             }
         }
     }
@@ -423,9 +432,12 @@ function showHideStepLoading(){
     }, 500);
 }
 
-function logCheckoutError(type, error){
+function logCheckoutError(type, error, error2){
     checkoutErrors = [];
     let message = 'We are sorry, but our '+type+' service is having technical issues.';
+    if( error2 ){
+        message = error2;
+    }
     checkoutErrors.push(message);
     showCheckoutErrors();
 }
@@ -799,6 +811,9 @@ window.addEventListener('DOMContentLoaded', (e) => {
         $checkoutAdvBtns.forEach( (btn) => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
+                if( checkoutError ){
+                    return false;
+                }
                 let step = parseInt(e.target.getAttribute('data-step'));
                 switch(step){
                     case 1:

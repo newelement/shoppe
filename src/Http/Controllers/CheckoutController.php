@@ -18,6 +18,7 @@ use Newelement\Shoppe\Events\OrderCreated;
 use Newelement\Neutrino\Models\ActivityLog;
 use Newelement\Shoppe\Models\Subscription;
 use Newelement\Shoppe\Models\ShippingMethod;
+use Newelement\Shoppe\Models\ShippingMethodClass;
 use Auth;
 
 class CheckoutController extends Controller
@@ -216,7 +217,29 @@ class CheckoutController extends Controller
         if( $shippingType === 'flat' ){
             $shippingRate = ShippingMethod::withTrashed()->find($request->shipping_rate);
             if( $shippingRate ){
-                $shippingAmount = $shippingRate->amount + $cart['shipping_class_amount'];
+
+                $classAmount = 0.00;
+                $shippingMethodClass = ShippingMethodClass::where(['shipping_method_id' => $shippingRate->id])->first();
+                if( $shippingMethodClass ){
+                    if( $shippingMethodClass->calc_type === 'per_class' ){
+                        foreach( $cart['shipping_classes'] as $cartShippingClass ){
+                            if( $cartShippingClass === $shippingMethodClass->shipping_class_id ){
+                                $classAmount += (float) $shippingMethodClass->amount;
+                            }
+                        }
+                    } else if( $shippingMethodClass->calc_type === 'per_order' ) {
+                        $flatClasses = array_unique($cart['shipping_classes']);
+                        foreach( $flatClasses as $cartShippingClass ){
+                            if( $cartShippingClass === $shippingMethodClass->shipping_class_id ){
+                                $classAmount += (float) $shippingMethodClass->amount;
+                            }
+                        }
+                    }
+                }
+
+                $calcShippingAmount = $shippingRate->amount + (float) $classAmount;
+
+                $shippingAmount = $calcShippingAmount;
                 $checkout['shipping_amount'] = $shippingAmount;
                 $shippingCarrierService = $this->getShippingCarrierService($shippingRate->service_level);
                 $checkout['shipping_carrier'] = $shippingCarrierService['carrier'];
@@ -248,10 +271,6 @@ class CheckoutController extends Controller
                 }
             }
 
-            $checkout['shipping_weight'] = $cart['total_weight'];
-            $checkout['shipping_max_width'] = $cart['dimensions']['total']['width'];
-            $checkout['shipping_max_height'] = $cart['dimensions']['total']['height'];
-            $checkout['shipping_max_length'] = $cart['dimensions']['total']['length'];
             $checkout['shipping_amount'] = $estimatedRate['rates']['amount'];
             $checkout['shipping_carrier'] = $estimatedRate['rates']['carrier'];
             $checkout['shipping_service'] = $estimatedRate['rates']['service'];
@@ -262,6 +281,11 @@ class CheckoutController extends Controller
             $shippingAmount = (float) $checkout['shipping_amount'];
 
         }
+
+        $checkout['shipping_weight'] = $cart['total_weight'];
+        $checkout['shipping_max_width'] = $cart['dimensions']['total']['width'];
+        $checkout['shipping_max_height'] = $cart['dimensions']['total']['height'];
+        $checkout['shipping_max_length'] = $cart['dimensions']['total']['length'];
 
 
 
@@ -462,6 +486,10 @@ class CheckoutController extends Controller
             $order->shipping_object_id = isset( $checkout['shipping_object_id'] )? $checkout['shipping_object_id'] : null;
             $order->shipping_method_id = isset( $checkout['shipping_method_id'] )? $checkout['shipping_method_id'] : null;
             $order->shipping_amount = isset( $checkout['shipping_amount'] )? $checkout['shipping_amount'] : 0.00;
+            $order->shipping_weight = isset( $checkout['shipping_weight'] )? $checkout['shipping_weight'] : null;
+            $order->shipping_max_width = isset( $checkout['shipping_max_width'] )? $checkout['shipping_max_width'] : null;
+            $order->shipping_max_height = isset( $checkout['shipping_max_height'] )? $checkout['shipping_max_height'] : null;
+            $order->shipping_max_length = isset( $checkout['shipping_max_length'] )? $checkout['shipping_max_length'] : null;
             $order->tax_amount = isset( $checkout['tax_amount'] )? $checkout['tax_amount'] : 0.00;
             $order->tax_rate = isset( $checkout['tax_rate'] )? $checkout['tax_rate'] : 0.00;
             if( $saveCard || $isStoredPayment ){
@@ -702,7 +730,32 @@ class CheckoutController extends Controller
         }
 
         if( $cart['shipping_type'] === 'flat' ){
-            $rates = [ 'rates' => $cart['shipping_rates'] ];
+            $shippingRates = [];
+            foreach( $cart['shipping_rates'] as $shippingRate ){
+                $classAmount = 0.00;
+                $shippingMethodClasses = ShippingMethodClass::where(['shipping_method_id' => $shippingRate->id])->get();
+                foreach($shippingMethodClasses as $shippingMethodClass){
+                    if( $shippingMethodClass->calc_type === 'per_class' ){
+                        foreach( $cart['shipping_classes'] as $cartShippingClass ){
+                            if( $cartShippingClass === $shippingMethodClass->shipping_class_id ){
+                                $classAmount += (float) $shippingMethodClass->amount;
+                            }
+                        }
+                    } else {
+                        $flatClasses = array_unique($cart['shipping_classes']);
+                        foreach( $flatClasses as $cartShippingClass ){
+                            if( $cartShippingClass === $shippingMethodClass->shipping_class_id ){
+                                $classAmount += (float) $shippingMethodClass->amount;
+                            }
+                        }
+                    }
+                }
+
+                $shippingRate->amount = $shippingRate->amount + (float) $classAmount;
+                $shippingRates[] = $shippingRate;
+            }
+
+            $rates = [ 'rates' => $shippingRates ];
         }
 
         if( $cart['shipping_type'] === 'estimated' ){

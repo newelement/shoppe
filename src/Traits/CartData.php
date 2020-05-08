@@ -19,7 +19,6 @@ trait CartData
         $eligibleSubscription = false;
         $totalShippingWeight = 0.00;
         $shippingType = false;
-        $shippingClassAmount = 0.00;
         $minimumOrderAmount = 0.00;
         $hasFreeMethod = false;
         $hasEstimatedMethod = false;
@@ -38,7 +37,9 @@ trait CartData
         $taxable_total = 0.00;
         $subscription_total = 0.00;
 
-        $shippingClasses = ShippingClass::all();
+        $shoppeSettings = getShoppeSettings();
+
+        $shippingClasses = [];
         $shippingMethods = ShippingMethod::orderBy('sort', 'asc')->get();
 
         if( $shippingMethods->contains('method_type', 'free') ){
@@ -92,7 +93,11 @@ trait CartData
                 }
 
                 $shippingClassId = $variation->shipping_class_id && $variation->shipping_class_id !== '' ? $variation->shipping_class_id : $product->shipping_class_id;
-
+                if( $shippingClassId ){
+                    for ($c = 1; $c <= $item->qty; $c++ ) {
+                        $shippingClasses[] = $shippingClassId;
+                    }
+                }
 
             // BASE PRODUCT
             } else {
@@ -111,6 +116,12 @@ trait CartData
                 }
 
                 $shippingClassId = $product->shipping_class_id;
+
+                if( $shippingClassId ){
+                    for ($j = 1; $j <= $item->qty; $j++ ) {
+                        $shippingClasses[] = $shippingClassId;
+                    }
+                }
 
             }
 
@@ -177,15 +188,11 @@ trait CartData
             }
         }
 
-        $totalShippingWeight = $weights;
+        $totalShippingWeight = $weights + (float) $shoppeSettings['shipping_weight_padding'];
 
-        $length = max( $lengths );
-        $width = max( $widths );
-        $height = max( $heights );
-
-        //if( $shippingRates->count() === 1 ){
-            //$sub_total = $shippingRates[0]->amount + $sub_total;
-        //}
+        $length = max( $lengths ) + (float) $shoppeSettings['shipping_length_padding'];
+        $width = max( $widths ) + (float) $shoppeSettings['shipping_width_padding'];
+        $height = max( $heights ) + (float) $shoppeSettings['shipping_height_padding'];
 
         $cartItems['items'] = $items;
         $cartItems['sub_total'] = $sub_total;
@@ -194,10 +201,10 @@ trait CartData
         $cartItems['shipping_type'] = $shippingType;
         $cartItems['minimum_order_amount'] = $minimumOrderAmount;
         $cartItems['shipping_rates'] = $shippingRates;
-        $cartItems['shipping_class_amount'] = $shippingClassAmount;
         $cartItems['eligible_subscription'] = $eligibleSubscription;
         $cartItems['eligible_shipping'] = $eligibleShipping;
         $cartItems['total_weight'] = $totalShippingWeight;
+        $cartItems['shipping_classes'] = $shippingClasses;
         $cartItems['dimensions'] = [
             'total' => [
                 'width' => $width,

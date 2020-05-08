@@ -64,10 +64,9 @@
                             $calcType = 'per_class';
                             $classSet = collect();
                             $methodClasses = $shippingMethod->methodClasses;
-                            foreach( $methodClasses as $methodClass ){
+                            foreach( $methodClasses as $j => $methodClass ){
                                 if( $methodClass->shipping_method_id === $shippingMethod->id && $methodClass->shipping_class_id === $shippingClass->id ){
                                     $classSet = $methodClass;
-                                    $calcType = $methodClass->calc_type;
                                 }
                             }
                             @endphp
@@ -76,15 +75,16 @@
                                 <div class="shipping-method-class-title">{{ $shippingClass->title }}</div>
                                 <label>Cost <input type="number" name="classes[{{$shippingClass->id}}][amount]" value="{{ isset($classSet->amount)? $classSet->amount : '' }}"></label>
                             </div>
-                            @endforeach
-                        </div>
 
-                        <div class="calc-class-rows">
-                            <label for="calc-type-{{ $key }}">Calculation Type</label>
-                            <select id="calc-type-{{ $key }}" name="calc_type" style="width: 100%;">
-                                <option value="per_class" {{ $calcType === 'per_class'? 'selected="selected"' : ''}} >Per Class: Charge for each shipping class individually</option>
-                                <option value="per_order" {{ $calcType === 'per_order'? 'selected="selected"' : ''}}>Per Order: Charge for the most expensive shipping class</option>
-                            </select>
+                            <div class="calc-class-rows">
+                                <label for="calc-type-{{ $j }}">Calculation Type</label>
+                                <select id="calc-type-{{ $j }}" name="classes[{{$shippingClass->id}}][calc_type]" style="width: 100%;">
+                                    <option value="per_class" {{ $classSet->calc_type === 'per_class'? 'selected="selected"' : ''}}>Per Class: Charge for each shipping class individually</option>
+                                    <option value="per_order" {{ $classSet->calc_type === 'per_order'? 'selected="selected"' : ''}}>Per Order: Charge for unique shipping class</option>
+                                </select>
+                            </div>
+
+                            @endforeach
                         </div>
 
                         <div class="shipping-class-actions-row text-right">

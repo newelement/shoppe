@@ -59,7 +59,8 @@ class AvalaraConnector
             $amount = round( ( $rate * ($cart['sub_total'] + $checkout['shipping_amount']) ), 2, PHP_ROUND_HALF_DOWN);
 
         } catch ( \Exception $e ){
-            $this->message = $e->getMessage();
+            $message = json_decode($e->getResponse()->getBody());
+            $this->message = $message->error->message;
             return false;
         }
 

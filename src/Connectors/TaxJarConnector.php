@@ -196,7 +196,7 @@ class TaxJarConnector
 
         try{
             $categories = $this->taxjar->categories();
-        catch( \Exception $e ){
+        } catch( \Exception $e ){
             return [ 'success' => false, 'message' => $e->getMessage(), 'tax_codes' => false ];
         }
 

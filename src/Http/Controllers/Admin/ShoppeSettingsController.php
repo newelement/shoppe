@@ -335,7 +335,7 @@ class ShoppeSettingsController extends Controller
         foreach( $classes as $key => $value ){
             ShippingMethodClass::updateOrCreate(
                 ['shipping_method_id' => $id, 'shipping_class_id' => $key],
-                ['amount' => $value['amount'], 'calc_type' => $request->calc_type]
+                ['amount' => $value['amount'], 'calc_type' => $value['calc_type'] ]
             );
         }
 

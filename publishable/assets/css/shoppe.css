@@ -202,6 +202,7 @@
 .qty-cell form {
   display: flex;
   flex-direction: row;
+  align-items: center;
 }
 
 .cart-qty {
@@ -237,6 +238,11 @@
   -webkit-animation: spinning 1.5s linear infinite;
           animation: spinning 1.5s linear infinite;
   z-index: 2;
+}
+
+.checkout-adv-btn.disabled {
+  cursor: not-allowed;
+  opacity: .65;
 }
 
 .sticky-card {
