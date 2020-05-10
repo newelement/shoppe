@@ -102,10 +102,15 @@ class CartController extends Controller
         }
 
         if( $exists ){
-            $updatedQty = $qty + $exists->qty;
-            $cart = Cart::find($exists->id);
-            $cart->qty = $updatedQty;
-            $cart->save();
+            $cart = Cart::where(function ($query) use ($exists, $cartUser) {
+                        $query->where(['product_id' => $exists->id, 'temp_user_id' => $cartUser ]);
+                    })->orWhere(function ($query) use ($exists, $cartUser) {
+                        $query->where(['product_id' => $exists->id, 'user_id' => $cartUser ]);
+                    })->first();
+
+            $cart->qty = $qty + $cart->qty;
+            $saved = $cart->save();
+
         } else {
             $cart = new Cart;
             if( Auth::check() ){

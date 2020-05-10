@@ -20,10 +20,10 @@ class ShoppeAnalyticsController extends Controller
     {
         $data = [];
 
-        $date = Carbon::parse(date('Y-m-d H:i'));
-        $date->setTimezone(config('neutrino.timezone'));
-        $date2 = Carbon::parse(date('Y-m-d H:i'));
-        $date2->setTimezone(config('neutrino.timezone'));
+        $date = Carbon::parse(date('Y-m-d'))->startOfDay();
+        //$date->setTimezone(config('neutrino.timezone'));
+        $date2 = Carbon::parse(date('Y-m-d'))->startOfDay();
+        //$date2->setTimezone(config('neutrino.timezone'));
         $today = $date;
         $yesterday = $date2->subDays(1);
 
@@ -38,8 +38,7 @@ class ShoppeAnalyticsController extends Controller
         $credits2 = $trans2->where('transaction_type', 'credit')->sum('amount');
         $salesYesterday = $debits2 - $credits2;
 
-        $twoweeks = Carbon::today()->subDays(14);
-        $activeCarts = Cart::whereDate('created_at', '>=', $twoweeks)
+        $activeCarts = Cart::whereDate('updated_at', '>', now()->subDays(14)->startOfDay()->toDateTimeString() )
                         ->select('user_id', 'temp_user_id')
                         ->groupBy('user_id', 'temp_user_id')
                         ->get();
