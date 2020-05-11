@@ -20,15 +20,14 @@ class ShoppeAnalyticsController extends Controller
     {
         $data = [];
 
-        $date = Carbon::parse(date('Y-m-d'))->startOfDay();
-        //$date->setTimezone(config('neutrino.timezone'));
-        $date2 = Carbon::parse(date('Y-m-d'))->startOfDay();
-        //$date2->setTimezone(config('neutrino.timezone'));
-        $today = $date;
-        $yesterday = $date2->subDays(1);
+        $startToday = Carbon::today(config('neutrino.timezone'));
+        $endToday = Carbon::today(config('neutrino.timezone'))->endOfDay();
 
-        $trans = Transaction::whereDate( 'created_at', $today)->get();
-        $trans2 = Transaction::whereDate( 'created_at', $yesterday )->get();
+        $startYesterday = Carbon::today(config('neutrino.timezone'))->subDays(1);
+        $endYesterday = Carbon::today(config('neutrino.timezone'))->subDays(1)->endOfDay();;
+
+        $trans = Transaction::whereBetween( 'created_at',[ $startToday->timezone('UTC')->toDateTimeString(), $endToday->timezone('UTC')->toDateTimeString() ])->get();
+        $trans2 = Transaction::whereBetween( 'created_at', [ $startYesterday->timezone('UTC')->toDateTimeString(), $endYesterday->timezone('UTC')->toDateTimeString() ] )->get();
 
         $debits = $trans->where('transaction_type', 'debit')->sum('amount');
         $credits = $trans->where('transaction_type', 'credit')->sum('amount');

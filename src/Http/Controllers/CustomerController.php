@@ -33,7 +33,7 @@ class CustomerController extends Controller
         $data->meta_description = '';
         $user_id = auth()->user()->id;
 
-        $orders = Order::where('user_id', $user_id )->orderBy('status', 'asc')->orderBy('created_at', 'asc')->paginate(20);
+        $orders = Order::where('user_id', $user_id )->orderBy('created_at', 'desc')->orderBy('status', 'asc')->paginate(20);
         $subscriptions = Subscription::where('user_id', $user_id)->get();
         $data->orders = $orders;
         $data->subscriptions = $subscriptions;
