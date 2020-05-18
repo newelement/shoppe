@@ -52,6 +52,12 @@ Route::get('/shoppe/sales-report', 'ShoppeReportController@getSales')->name('sho
 Route::get('/shoppe/profit-report', 'ShoppeReportController@getProfit')->name('shoppe');
 Route::get('/shoppe-settings', 'ShoppeSettingsController@index')->name('shoppe');
 
+Route::get('/discount-codes', ['uses' => 'DiscountCodeController@index', 'as' => 'shoppe'])->name('shoppe');
+Route::get('/discount-codes/{id}', ['uses' => 'DiscountCodeController@get', 'as' => 'shoppe'])->name('shoppe');
+Route::post('/discount-codes', ['uses' => 'DiscountCodeController@create', 'as' => 'shoppe'])->name('shoppe');
+Route::put('/discount-codes/{id}', ['uses' => 'DiscountCodeController@update', 'as' => 'shoppe'])->name('shoppe');
+Route::delete('/discount-codes/{id}', ['uses' => 'DiscountCodeController@delete', 'as' => 'shoppe'])->name('shoppe');
+
 Route::post('/shoppe-settings/sort/shipping-methods', 'ShoppeSettingsController@updateShippingMethodsSort')->name('shoppe');
 Route::post('/shoppe-settings/shipping-classes', 'ShoppeSettingsController@createShippingClass')->name('shoppe');
 Route::post('/shoppe-settings/products', 'ShoppeSettingsController@updateProductSettings')->name('shoppe');

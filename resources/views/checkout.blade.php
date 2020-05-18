@@ -111,10 +111,10 @@ $socialImages = getImageSizes($data->social_image);
                                             </div>
 
                                             <div class="form-group row">
-                                                <label for="shipping-state" class="col-sm-4 col-form-label">State / Providence</label>
+                                                <label for="shipping-state" class="col-sm-4 col-form-label">State / Province</label>
                                                 <div class="col-sm-8">
                                                     <select class="form-control shipping-address-field" id="shipping-state" name="shipping_state" data-required data-required-message="Please enter your shipping state.">
-                                                        <option value="">Choose state / providence ....</option>
+                                                        <option value="">Choose state / province ....</option>
                                                         @php $states = getStates();  @endphp
                                                         @foreach( $states as $key => $value )
                                                         <option value="{{ $key }}" {{ old('shipping_state') === $key? 'selected="selected"' : '' }}>{{ $value }}</option>
@@ -427,6 +427,19 @@ $socialImages = getImageSizes($data->social_image);
                                     @endif
                                     <dt>Est. Sales Tax</dt><dd>$<span class="taxes">0.00</span></dd>
                                 </dl>
+
+                                @if( getShoppeSetting('allow_discount_codes') )
+                                <div class="coupon-code-wrap">
+                                    <form action="/checkout/apply-discount-code" method="post">
+                                        @csrf
+                                        <label for="discount-code">Coupon Code</label>
+                                        <div class="discount-code-inputs">
+                                            <input type="text" name="discount_code" class="text-center">
+                                            <button type="submit" class="btn btn-secondary btn-sm">Apply Code</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                @endif
 
                                 <div class="shipping-address-summary hide-me">
                                 </div>

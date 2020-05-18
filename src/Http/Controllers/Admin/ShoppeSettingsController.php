@@ -111,6 +111,7 @@ class ShoppeSettingsController extends Controller
         $fields = $request->all();
 
         $fields['create_account_checkout'] = $request->boolean('create_account_checkout');
+        $fields['allow_discount_codes'] = $request->boolean('allow_discount_codes');
 
         foreach( $fields as $key => $value ){
             $setting = ShoppeSetting::where(['name' => $key, 'group' => 'Checkout' ])->first();

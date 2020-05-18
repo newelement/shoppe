@@ -46,6 +46,7 @@ class CreateOrdersTable extends Migration
             $table->string('card_brand', 20)->nullable();
             $table->string('last_four', 4)->nullable();
             $table->string('payment_type', 20)->nullable();
+            $table->bigInteger('discount_code_id')->nullable();
             $table->decimal('discount_amount', 9, 2)->nullable();
             $table->text('notes')->nullable();
             $table->tinyInteger('complete_order_sent')->default(0);
@@ -56,6 +57,7 @@ class CreateOrdersTable extends Migration
 			$table->index('user_id');
             $table->index('ref_id');
             $table->index('status');
+            $table->index('discount_code_id');
         });
     }
 

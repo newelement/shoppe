@@ -19,6 +19,8 @@ use Newelement\Neutrino\Models\ActivityLog;
 use Newelement\Shoppe\Models\Subscription;
 use Newelement\Shoppe\Models\ShippingMethod;
 use Newelement\Shoppe\Models\ShippingMethodClass;
+use Newelement\Shoppe\Models\DiscountCode;
+use \Carbon\Carbon;
 use Auth;
 
 class CheckoutController extends Controller
@@ -86,6 +88,119 @@ class CheckoutController extends Controller
         } else {
             return view('shoppe::checkout', ['data' => $data]);
         }
+    }
+
+    public function applyDiscountCode(Request $request)
+    {
+        $discountCode = $request->discount_code;
+        $checkCode = $this->checkDiscountCode($discountCode);
+        if( !$checkCode['success'] ){
+            return redirect()->back()->with('error', $checkCode['message']);
+        }
+
+        session();
+    }
+
+    public function checkDiscountCode($discountCode = false)
+    {
+        $success = true;
+        $message = '';
+
+        if( !$discountCode ){
+            return [ 'success' => false, 'message' => 'Coupon code was empty.'];
+        }
+
+        // Does codes exist?
+        $exist = DiscountCode::where('code', $discountCode)->exists();
+
+        if( !$exist ){
+            return [ 'success' => false, 'message' => 'The code you entered is not valid.'];
+        }
+
+        $cart = $this->getCartItems();
+        $subTotal = $cart['sub_total'];
+        $adjustedSubTotal = $subTotal;
+        $discountAmount = 0.00;
+
+        $code = DiscountCode::where('code', $discountCode)->first();
+
+        // If so, has it expired?
+        if( $code->expires_on ){
+            $today = Carbon::now();
+            if( $today > $code->expires_on ){
+                return [ 'success' => false, 'message' => 'Sorry, the code you entered has expired.'];
+            }
+        }
+
+        // Does it meet the min order requirement?
+        if( $code->minimum_order_amount ){
+            if( $code->minimum_order_amount > $subTotal ){
+                return [ 'success' => false, 'message' => 'Sorry, the code you entered does not meet the minimum order amount.'];
+            }
+        }
+
+        if( $code->amount_type === 'AMOUNT' &&  $subTotal < $code->amount ){
+            return [ 'success' => false, 'message' => 'Sorry, the total cannot be less than the discounted amount.'];
+        }
+
+        // Check usage rules.
+        $usageType = $code->type;
+
+        // Is it once per customer?
+        if( $usageType === 'ONCE_PER_CUSTOMER' && auth()->check() ){
+            // Check for use
+            $exists = Order::where(['user_id' => auth()->user()->id, 'discount_code_id' => $code->id ])->exists();
+            if( $exists ){
+                return [ 'success' => false, 'message' => 'Sorry, this code has already been used.'];
+            }
+        }
+
+        // Is it a single use?
+        if( $usageType === 'SINGLE' ){
+            // Check for use
+            $exists = Order::where(['discount_code_id' => $code->id ])->exists();
+            if( $exists ){
+                return [ 'success' => false, 'message' => 'Sorry, this code has already been used.'];
+            }
+        }
+
+        // Is it unlimited?
+        // CARRY ON ...
+
+        // Is this a free shipping code?
+        $freeShippingCode = $code->amount_type === 'FREE_SHIPPING'? true : false;
+        // Is it an amount off code?
+        $amountCode = $code->amount_type === 'AMOUNT'? true : false;
+        // Is it a percent off code?
+        $percentCode = $code->amount_type === 'PERCENT'? true : false;
+
+        if( $amountCode || $percentCode ){
+            // Calc discount amount
+            if( $amountCode ){
+                if( $subTotal >= $code->amount ){
+                    $discountAmount = $code->amount;
+                    $adjustedSubTotal = $subTotal - $discountAmount;
+                }
+            }
+
+            // Calc percent amount
+            if( $percentCode ){
+                $amount = ( $subTotal/100 ) * $code->percent;
+                $discountAmount = (float) number_format($amount, 2, '.', '');
+                $adjustedSubTotal = $subTotal - $discountAmount;
+            }
+
+            // Return discount amount and discount message. like $10 off or 10% off.
+            $discountMessage = $percentCode? $code->percent.'% off' : '$'.$code->amount.' off';
+        }
+
+        return [
+            'success' => true,
+            'message' => $discountMessage,
+            'adjusted_sub_total' => $adjustedSubTotal,
+            'discount_amount' => $discountAmount,
+            'free_shipping' => $freeShippingCode
+        ];
     }
 
 

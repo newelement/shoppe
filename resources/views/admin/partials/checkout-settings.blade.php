@@ -24,7 +24,17 @@
             <label><input type="checkbox" value="1" name="create_account_checkout" {{ getShoppeSetting('create_account_checkout', $settings->checkout) === 1? 'checked="checked"' : '' }}> <span>Yes</span></label>
         </div>
         <span class="input-notes">
-            <span class="note">Allow user to enter an account password during checkout to create an account.</span>
+            <span class="note">Allow users to enter an account password during checkout to create an account.</span>
+        </span>
+    </div>
+
+    <div class="form-row">
+        <div class="label-col">Allow Discount Codes</div>
+        <div class="input-col has-checkbox">
+            <label><input type="checkbox" value="1" name="allow_discount_codes" {{ getShoppeSetting('allow_discount_codes', $settings->checkout) === 1? 'checked="checked"' : '' }}> <span>Yes</span></label>
+        </div>
+        <span class="input-notes">
+            <span class="note">Allow users to enter a discount code during checkout.</span>
         </span>
     </div>
 

@@ -11,6 +11,7 @@ Route::delete('/cart', ['uses' => 'CartController@delete', 'as' => 'cart']);
 
 Route::get('/checkout', ['uses' => 'CheckoutController@index', 'as' => 'checkout']);
 Route::post('/checkout', ['uses' => 'CheckoutController@processCheckout', 'as' => 'checkout']);
+Route::post('/checkout/apply-discount-code', ['uses' => 'CheckoutController@applyDiscountCode', 'as' => 'checkout']);
 Route::get('/'.config('shoppe.slugs.order_complete', 'order-complete').'/{ref_id}', ['uses' => 'CheckoutController@checkoutSuccess', 'as' => 'order-complete']);
 
 Route::get('/del-filter/{name}/{value}', 'ProductController@delFilter');
