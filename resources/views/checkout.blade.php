@@ -410,8 +410,14 @@ $socialImages = getImageSizes($data->social_image);
                                     @endforeach
                                 </dl>
 
+                                @php
+                                $allowDiscountCodes = getShoppeSetting('allow_discount_codes');
+                                @endphp
+
                                 <dl class="shipping-taxes-loader">
                                     <dt>Subtotal</dt><dd>$<span class="sub-total">{{ formatCurrency($data->sub_total) }}</span></dd>
+                                    <dt class="discount-row hide">Discount</dt><dd class="discount-row discount-amount-row hide">-$<span class="discount-amount"></span></dd>
+                                    <dt class="discount-row hide">Adjusted Subtotal</dt><dd class="discount-row hide">$<span class="discount-sub-total"></span></dd>
                                     <dt>
                                         Shipping &amp; Handling
                                         <span class="shipping-service-summary">
@@ -428,16 +434,14 @@ $socialImages = getImageSizes($data->social_image);
                                     <dt>Est. Sales Tax</dt><dd>$<span class="taxes">0.00</span></dd>
                                 </dl>
 
-                                @if( getShoppeSetting('allow_discount_codes') )
+                                @if( $allowDiscountCodes )
                                 <div class="coupon-code-wrap">
-                                    <form action="/checkout/apply-discount-code" method="post">
-                                        @csrf
-                                        <label for="discount-code">Coupon Code</label>
-                                        <div class="discount-code-inputs">
-                                            <input type="text" name="discount_code" class="text-center">
-                                            <button type="submit" class="btn btn-secondary btn-sm">Apply Code</button>
-                                        </div>
-                                    </form>
+                                    <label for="discount-code">Coupon Code</label>
+                                    <div class="discount-error-message hide"></div>
+                                    <div class="discount-code-inputs">
+                                        <input id="discount-code" type="text" name="discount_code" class="text-center">
+                                        <button type="button" class="apply-coupon-btn">Apply Code</button>
+                                    </div>
                                 </div>
                                 @endif
 
@@ -447,6 +451,7 @@ $socialImages = getImageSizes($data->social_image);
                                 <dl class="checkout-total">
                                     <dt>Total</dt><dd>$<span class="total">{{ formatCurrency($data->sub_total) }}</span></dd>
                                 </dl>
+                                <span class="original-total hide">{{ formatCurrency($data->sub_total) }}</span>
                             </div>
                         </div>
 

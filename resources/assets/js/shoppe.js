@@ -165,8 +165,14 @@ let getTaxes = async (shipping) => {
 };
 
 function calcOrderTotal(){
+    let $discountAmount = $q('.discount-amount');
+    let $discountSubTotal = $q('.discount-sub-total');
+    let discountAmount = 0.00;
+
     subTotal = $q('.sub-total').innerHTML;
-    total = parseFloat(subTotal) + parseFloat(shipping) + parseFloat(taxes);
+    discountAmount = parseFloat($discountAmount.innerHTML);
+    console.log(discountAmount);
+    total = parseFloat(subTotal) + parseFloat(shipping) + parseFloat(taxes) - discountAmount;
     $q('.sub-total').innerHTML = parseFloat(subTotal).toFixed(2);
     $q('.shipping').innerHTML = parseFloat(shipping).toFixed(2);
     $q('.taxes').innerHTML = parseFloat(taxes).toFixed(2);
@@ -464,6 +470,51 @@ function submitOrder(){
             resetPlaceOrderLoader();
             console.log(e.response.data.message);
             $checkoutErrorElement.innerHTML = e.response.data.message;
+    });
+}
+
+function validateCouponCode(){
+    let discountCode = document.getElementById('discount-code').value;
+    let $discountErrorMessage = $q('.discount-error-message');
+    let $discountRow = $$q('.discount-row');
+    let $discountAmount = $q('.discount-amount');
+    let $discountSubTotal = $q('.discount-sub-total');
+
+    $discountRow.forEach( (el) => {
+        el.classList.add('hide');
+    });
+
+    $discountErrorMessage.classList.add('hide');
+    $discountErrorMessage.innerHTML = '';
+    if( !discountCode.length ){
+        return false;
+    }
+    let formData = new FormData;
+    formData.append('discount_code', discountCode);
+    HTTP.post('/checkout/apply-discount-code', formData)
+        .then( response => {
+            if( response.data.success ){
+
+                $discountRow.forEach( (el) => {
+                    el.classList.remove('hide');
+                });
+
+                $discountAmount.innerHTML = response.data.discount_amount.toFixed(2);
+                $discountSubTotal.innerHTML = response.data.adjusted_sub_total.toFixed(2);
+
+                calcOrderTotal();
+
+            } else {
+                $discountErrorMessage.classList.remove('hide');
+                $discountErrorMessage.innerHTML = response.data.message;
+
+                $discountRow.forEach( (el) => {
+                    el.classList.remove('hide');
+                });
+            }
+        })
+        .catch(e => {
+
     });
 }
 
@@ -902,6 +953,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
         $toggleCustomerNewPayment.addEventListener('click', (e) => {
             e.preventDefault();
             $q('.new-customer-payment').classList.toggle('hide');
+        });
+    }
+
+    let $applyCouponBtn = document.querySelector('.apply-coupon-btn');
+    if( $applyCouponBtn ){
+        $applyCouponBtn.addEventListener('click', (el) => {
+           el.preventDefault();
+           validateCouponCode();
         });
     }
 

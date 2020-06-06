@@ -93,12 +93,11 @@ class CheckoutController extends Controller
     public function applyDiscountCode(Request $request)
     {
         $discountCode = $request->discount_code;
-        $checkCode = $this->checkDiscountCode($discountCode);
-        if( !$checkCode['success'] ){
-            return redirect()->back()->with('error', $checkCode['message']);
+        if( !$discountCode ){
+            return reponse()->json(['success' => false, 'message' => 'Invalid code.']);
         }
-
-        session();
+        $checkCode = $this->checkDiscountCode($discountCode);
+        return response()->json($checkCode);
     }
 
     public function checkDiscountCode($discountCode = false)
@@ -107,8 +106,10 @@ class CheckoutController extends Controller
         $message = '';
 
         if( !$discountCode ){
-            return [ 'success' => false, 'message' => 'Coupon code was empty.'];
+            return;
         }
+
+        $discountCode = strtoupper($discountCode);
 
         // Does codes exist?
         $exist = DiscountCode::where('code', $discountCode)->exists();
@@ -121,6 +122,7 @@ class CheckoutController extends Controller
         $subTotal = $cart['sub_total'];
         $adjustedSubTotal = $subTotal;
         $discountAmount = 0.00;
+        $discountMessage = '';
 
         $code = DiscountCode::where('code', $discountCode)->first();
 
@@ -170,7 +172,7 @@ class CheckoutController extends Controller
         // Is this a free shipping code?
         $freeShippingCode = $code->amount_type === 'FREE_SHIPPING'? true : false;
         // Is it an amount off code?
-        $amountCode = $code->amount_type === 'AMOUNT'? true : false;
+        $amountCode = $code->amount_type === 'DOLLAR'? true : false;
         // Is it a percent off code?
         $percentCode = $code->amount_type === 'PERCENT'? true : false;
 
@@ -178,7 +180,7 @@ class CheckoutController extends Controller
             // Calc discount amount
             if( $amountCode ){
                 if( $subTotal >= $code->amount ){
-                    $discountAmount = $code->amount;
+                    $discountAmount = (float) number_format($code->amount, 2, '.', '');
                     $adjustedSubTotal = $subTotal - $discountAmount;
                 }
             }

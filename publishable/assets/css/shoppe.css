@@ -262,6 +262,7 @@
   width: 70%;
   color: #777;
   font-size: 14px;
+  margin-bottom: 0.5rem;
 }
 
 .shipping-taxes-loader dd {
@@ -404,7 +405,6 @@
   display: block;
   font-size: 13px;
   color: #999;
-  margin-bottom: 6px;
 }
 
 .shipping-address-summary {
@@ -813,6 +813,83 @@
   vertical-align: middle;
   -webkit-animation: spinning 1.5s linear infinite;
           animation: spinning 1.5s linear infinite;
+}
+
+.discount-error-message {
+  color: #b30000;
+  font-size: 14px;
+  padding: 4px;
+}
+
+.coupon-code-wrap {
+  margin-bottom: 12px;
+}
+
+.coupon-code-wrap label {
+  color: #777;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.coupon-code-wrap input {
+  display: block;
+  width: 100%;
+  text-transform: uppercase;
+  height: calc(1.5em + 0.75rem + 2px);
+  padding: 0.35rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.coupon-code-wrap button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7875rem;
+  line-height: 1.5;
+  border-radius: 0.2rem;
+  color: #fff;
+  background-color: #6c757d;
+  border-color: #6c757d;
+  display: inline-block;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.coupon-code-wrap button:hover {
+  background-color: #545b62;
+}
+
+.discount-amount-row {
+  background-color: #e3f1ff;
+}
+
+.discount-code-inputs {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+}
+
+.discount-code-inputs button {
+  width: 38%;
+}
+
+.discount-code-inputs input {
+  width: 58%;
 }
 
 @-webkit-keyframes spinning {
